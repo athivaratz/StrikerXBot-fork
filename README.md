@@ -30,6 +30,16 @@ python run.py
 
 `python main.py` starts the same entry point. The hosting start command is not recorded in this repo. Confirm it with the original author before removing `main.py`.
 
+## AI chat
+
+When `OPENROUTER_API_KEY` is set, the bot answers `/ask` and messages that mention it.
+
+The other settings are `AI_MODEL`, `AI_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET`, and `OWNER_IDS`. They load the same way `TOKEN` does.
+
+When the key is empty, startup prints that AI chat will not load.
+
+See `docs/ai-chat.md`.
+
 ## Commands
 
 - `-bye`
