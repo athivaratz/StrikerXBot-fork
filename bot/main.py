@@ -3,8 +3,10 @@ import discord
 import pymupdf
 import io
 from datetime import date
+from discord.ext import commands
 from bot.config import (
     JOIN_ROLE_ID,
+    OPENROUTER_API_KEY,
     OVERWRITE_ROLE_ID_1,
     OVERWRITE_ROLE_ID_2,
     PRIVACY_VOICE_CHANNEL_ID,
@@ -17,7 +19,24 @@ intents.message_content = True
 intents.members = True
 intents.guilds = True
 
-client = discord.Client(intents=intents)
+
+class StrikerXBot(commands.Bot):
+    async def setup_hook(self) -> None:
+        # The gateway is not connected yet, so a missing key can skip the cog
+        # without taking the rest of the bot down.
+        if not OPENROUTER_API_KEY:
+            print("OPENROUTER_API_KEY is not set. AI chat will not load.")
+            return
+        await self.load_extension("bot.cogs.ai")
+        try:
+            await self.tree.sync()
+        except discord.HTTPException as err:
+            print(f"Slash command sync failed with status {err.status}.")
+
+
+# Bot requires a prefix. on_message does not call process_commands,
+# so this prefix is unused and the dash commands stay in that handler.
+client = StrikerXBot(command_prefix="!", help_command=None, intents=intents)
 temp_channels = {}
 
 async def create_private_channel(member):
