@@ -1,7 +1,7 @@
 import asyncio
 
-from bot.ai.memory_tools import delete_own_turns, wipe_channel
-from bot.storage import Store
+from bot.ai.memory_tools import delete_own_turns, format_view, wipe_channel
+from bot.storage import Store, Turn
 
 
 def test_clear_own_rows_and_wipe_channel(tmp_path):
@@ -53,3 +53,18 @@ def test_clear_own_rows_and_wipe_channel(tmp_path):
     assert wiped == 1
     assert channel_one == []
     assert [turn.user_id for turn in channel_two] == [8]
+
+
+def test_view_strips_exact_label_when_name_contains_colon():
+    row = Turn(
+        id=1,
+        channel_id=1,
+        guild_id=9,
+        user_id=7,
+        speaker="Ann: Bee",
+        user_text="Ann: Bee: hi: there",
+        assistant_text="ok",
+        created_at=1.0,
+    )
+    shown = format_view(1, [row])
+    assert shown.splitlines()[-1] == "hi: there"

@@ -10,7 +10,6 @@ import aiohttp
 
 from bot.ai.history import (
     bind_store,
-    clear_history as clear_history,
     current_store,
     load_context,
     lock_for,

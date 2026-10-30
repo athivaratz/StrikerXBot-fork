@@ -10,7 +10,7 @@ from discord.ext import commands
 from bot.ai.chat import run_chat
 from bot.ai.chunker import split_for_discord
 from bot.ai.provider import AIError, NO_ANSWER
-from bot.utils.discord_send import NO_MENTIONS, send_text
+from bot.utils.discord_send import send_text
 
 
 def _chunks(reply: str) -> list[str]:

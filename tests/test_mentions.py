@@ -2,7 +2,8 @@ import asyncio
 
 import discord
 
-from bot.cogs.ai import NO_MENTIONS, send_text
+from bot.cogs.ai import send_text
+from bot.utils.discord_send import NO_MENTIONS
 
 
 def test_send_text_disables_mentions():

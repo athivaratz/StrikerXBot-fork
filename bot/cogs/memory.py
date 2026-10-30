@@ -50,8 +50,7 @@ class MemoryCog(commands.Cog):
         user_id = interaction.user.id
         count = await store.count_user_turns(user_id, channel_id)
         rows = await store.last_user_turns(user_id, channel_id, 3)
-        texts = [row.user_text for row in rows]
-        await send_ephemeral(interaction, format_view(count, texts))
+        await send_ephemeral(interaction, format_view(count, rows))
 
     @memory.command(name="clear", description="Delete your stored messages")
     @app_commands.describe(scope="Delete in this channel, or everywhere")

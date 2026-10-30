@@ -6,19 +6,21 @@ The cog stays thin, and tests can call these without Discord.
 import discord
 from discord import app_commands
 
+from bot.ai.chat import label_turn
 from bot.ai.persona import DEFAULT_PERSONA
-from bot.storage import Store
+from bot.storage import Store, Turn
 from bot.utils.discord_send import send_ephemeral
 
 _PREVIEW = 300
 _SNIPPET = 100
 
 
-def strip_speaker_label(user_text: str) -> str:
-    _name, sep, rest = user_text.partition(": ")
-    if sep == "":
-        return user_text
-    return rest
+def strip_speaker_label(speaker: str, user_text: str) -> str:
+    """A display name can contain ": ", so the prefix has to be exact."""
+    prefix = label_turn(speaker, "")
+    if user_text.startswith(prefix):
+        return user_text[len(prefix):]
+    return user_text
 
 
 def shorten(text: str, limit: int = _SNIPPET) -> str:
@@ -27,12 +29,12 @@ def shorten(text: str, limit: int = _SNIPPET) -> str:
     return text[:limit] + "..."
 
 
-def format_view(count: int, user_texts: list[str]) -> str:
+def format_view(count: int, rows: list[Turn]) -> str:
     if count == 0:
         return "You have no stored messages in this channel."
     lines = [f"You have {count} stored messages in this channel."]
-    for text in user_texts:
-        lines.append(shorten(strip_speaker_label(text)))
+    for row in rows:
+        lines.append(shorten(strip_speaker_label(row.speaker, row.user_text)))
     return "\n".join(lines)
 
 

@@ -79,7 +79,7 @@ Outgoing messages pass `allowed_mentions` set to none. Echoed `@everyone`, role,
 `/memory clear` deletes only your turns. The `scope` choice is `channel` or `everywhere`. `channel` is the default.
 
 ```
-/memory clear
+/memory clear scope: everywhere
 ```
 
 `/memory wipe-channel` deletes every stored turn in this channel. It runs in a server and requires the Manage Messages permission.
@@ -105,7 +105,7 @@ A long persona is cut after 300 characters in that reply.
 Empty text is rejected. Text longer than 1500 characters is rejected.
 
 ```
-/persona set
+/persona set text: You are a helpful bot.
 ```
 
 `/persona reset` deletes the saved persona for this server. Later replies use `DEFAULT_PERSONA`. It requires the Manage Server permission.
