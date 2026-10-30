@@ -102,6 +102,9 @@ class Store:
     async def delete_channel_turns(self, channel_id: int) -> int:
         return await self._run(lambda conn: turns.delete_channel_turns(conn, channel_id))
 
+    async def delete_guild_turns(self, guild_id: int) -> int:
+        return await self._run(lambda conn: turns.delete_guild_turns(conn, guild_id))
+
     async def delete_all_turns(self) -> int:
         """Used by tests to empty the current file without picking a cutoff."""
         return await self._run(turns.delete_all_turns)

@@ -1,6 +1,12 @@
 import asyncio
 
-from bot.ai.memory_tools import delete_own_turns, format_view, wipe_channel
+from bot.ai.memory_tools import (
+    change_persona,
+    delete_own_turns,
+    format_view,
+    reset_persona_and_history,
+    wipe_channel,
+)
 from bot.storage import Store, Turn
 
 
@@ -68,3 +74,61 @@ def test_view_strips_exact_label_when_name_contains_colon():
     )
     shown = format_view(1, [row])
     assert shown.splitlines()[-1] == "hi: there"
+
+
+def test_delete_guild_turns_leaves_other_guilds(tmp_path):
+    store = Store(tmp_path / "guilds.db")
+
+    async def run():
+        await store.add_turn(1, 9, 7, "Ann", "Ann: a", "ra", 1)
+        await store.add_turn(1, 9, 8, "Bee", "Bee: b", "rb", 2)
+        await store.add_turn(2, 10, 7, "Ann", "Ann: c", "rc", 3)
+        await store.add_turn(3, None, 7, "Ann", "Ann: dm", "rd", 4)
+        removed = await store.delete_guild_turns(9)
+        left_here = await store.recent_turns(1, 10, -1.0)
+        left_other = await store.recent_turns(2, 10, -1.0)
+        left_dm = await store.recent_turns(3, 10, -1.0)
+        return removed, left_here, left_other, left_dm
+
+    removed, left_here, left_other, left_dm = asyncio.run(run())
+    assert removed == 2
+    assert left_here == []
+    assert [turn.guild_id for turn in left_other] == [10]
+    assert left_dm[0].guild_id is None
+
+
+def test_change_persona_clears_that_guild(tmp_path):
+    store = Store(tmp_path / "persona.db")
+
+    async def run():
+        await store.add_turn(1, 9, 7, "Ann", "Ann: a", "ra", 1)
+        await store.add_turn(2, 9, 8, "Bee", "Bee: b", "rb", 2)
+        await store.add_turn(3, 10, 7, "Ann", "Ann: c", "rc", 3)
+        cleared = await change_persona(store, 9, "New voice", 1, 5.0)
+        persona = await store.get_persona(9)
+        here = await store.recent_turns(1, 10, -1.0)
+        also = await store.recent_turns(2, 10, -1.0)
+        other = await store.recent_turns(3, 10, -1.0)
+        return cleared, persona, here, also, other
+
+    cleared, persona, here, also, other = asyncio.run(run())
+    assert cleared == 2
+    assert persona == "New voice"
+    assert here == []
+    assert also == []
+    assert [turn.guild_id for turn in other] == [10]
+
+
+def test_reset_without_custom_persona_keeps_turns(tmp_path):
+    store = Store(tmp_path / "reset.db")
+
+    async def run():
+        await store.add_turn(1, 9, 7, "Ann", "Ann: a", "ra", 1)
+        removed, cleared = await reset_persona_and_history(store, 9)
+        left = await store.recent_turns(1, 10, -1.0)
+        return removed, cleared, left
+
+    removed, cleared, left = asyncio.run(run())
+    assert removed is False
+    assert cleared == 0
+    assert len(left) == 1

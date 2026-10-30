@@ -44,6 +44,20 @@ def format_wiped(count: int) -> str:
     return f"Deleted {count} stored messages in this channel."
 
 
+def format_persona_set(count: int) -> str:
+    return (
+        "Persona updated. Cleared "
+        f"{count} stored messages in this server so replies follow the new persona."
+    )
+
+
+def format_persona_reset(count: int) -> str:
+    return (
+        "Persona reset to the default. Cleared "
+        f"{count} stored messages in this server."
+    )
+
+
 def format_persona_show(custom: str | None) -> str:
     if custom is None:
         kind = "This server uses the default persona."
@@ -64,3 +78,20 @@ async def delete_own_turns(
 
 async def wipe_channel(store: Store, channel_id: int) -> int:
     return await store.delete_channel_turns(channel_id)
+
+
+async def change_persona(
+    store: Store, guild_id: int, text: str, updated_by: int, when: float
+) -> int:
+    """Old replies are in the old voice, and the model copies them."""
+    await store.set_persona(guild_id, text, updated_by, when)
+    return await store.delete_guild_turns(guild_id)
+
+
+async def reset_persona_and_history(store: Store, guild_id: int) -> tuple[bool, int]:
+    """A server already on the default has nothing to clear."""
+    removed = await store.reset_persona(guild_id)
+    if not removed:
+        return False, 0
+    count = await store.delete_guild_turns(guild_id)
+    return True, count

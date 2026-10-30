@@ -12,11 +12,15 @@ from discord.ext import commands
 
 from bot.ai.history import current_store
 from bot.ai.memory_tools import (
+    change_persona,
     delete_own_turns,
     format_deleted,
+    format_persona_reset,
+    format_persona_set,
     format_persona_show,
     format_view,
     format_wiped,
+    reset_persona_and_history,
     wipe_channel,
 )
 from bot.ai.persona import PersonaError, validate_persona
@@ -105,10 +109,10 @@ class MemoryCog(commands.Cog):
         except PersonaError as err:
             await send_ephemeral(interaction, str(err))
             return
-        await current_store().set_persona(
-            guild_id, cleaned, interaction.user.id, time.time()
+        cleared = await change_persona(
+            current_store(), guild_id, cleaned, interaction.user.id, time.time()
         )
-        await send_ephemeral(interaction, "Persona updated.")
+        await send_ephemeral(interaction, format_persona_set(cleared))
 
     @persona.command(name="reset", description="Restore the default persona")
     @app_commands.guild_only()
@@ -118,9 +122,9 @@ class MemoryCog(commands.Cog):
         if guild_id is None:
             await send_ephemeral(interaction, _SERVER_ONLY)
             return
-        removed = await current_store().reset_persona(guild_id)
+        removed, cleared = await reset_persona_and_history(current_store(), guild_id)
         if removed:
-            await send_ephemeral(interaction, "Persona reset to the default.")
+            await send_ephemeral(interaction, format_persona_reset(cleared))
             return
         await send_ephemeral(
             interaction, "This server is already using the default persona."
