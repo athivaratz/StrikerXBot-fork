@@ -28,7 +28,7 @@ def _text(path: Path) -> str | None:
     return text or None
 
 
-def _os_name() -> str:
+def read_os_name() -> str:
     try:
         name = platform.freedesktop_os_release()["PRETTY_NAME"].strip()
     except (OSError, KeyError):
@@ -45,7 +45,7 @@ def read_board(paths: tuple[Path, ...] = _BOARD_PATHS) -> str | None:
     return None
 
 
-def _cpu_model() -> str:
+def read_cpu_model() -> str:
     text = _text(_CPUINFO) or ""
     found: dict[str, str] = {}
     for line in text.splitlines():
@@ -60,7 +60,7 @@ def _cpu_model() -> str:
     return platform.processor().strip() or "unknown"
 
 
-def _load_average() -> tuple[float, float, float] | None:
+def read_load_average() -> tuple[float, float, float] | None:
     try:
         one, five, fifteen = os.getloadavg()
     except (OSError, AttributeError):
@@ -68,7 +68,7 @@ def _load_average() -> tuple[float, float, float] | None:
     return (float(one), float(five), float(fifteen))
 
 
-def _temperature_c() -> float | None:
+def read_temperature_c() -> float | None:
     try:
         groups = psutil.sensors_temperatures()
     except (AttributeError, OSError, NotImplementedError):
@@ -86,7 +86,7 @@ def _temperature_c() -> float | None:
         return None
 
 
-def _timezone_name() -> str:
+def read_timezone() -> str:
     try:
         target = os.readlink(_LOCALTIME)
     except OSError:
@@ -104,7 +104,7 @@ def _timezone_name() -> str:
     return "unknown"
 
 
-def _host_user() -> str:
+def read_host_user() -> str:
     try:
         name = getpass.getuser().strip()
     except OSError:

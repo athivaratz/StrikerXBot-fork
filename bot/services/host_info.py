@@ -11,13 +11,13 @@ import discord
 import psutil
 
 from bot.services.host_probes import (
-    _cpu_model,
-    _host_user,
-    _load_average,
-    _os_name,
-    _temperature_c,
-    _timezone_name,
     read_board,
+    read_cpu_model,
+    read_host_user,
+    read_load_average,
+    read_os_name,
+    read_temperature_c,
+    read_timezone,
 )
 
 
@@ -53,15 +53,15 @@ def collect() -> HostSnapshot:
     disk = psutil.disk_usage("/")
     count = psutil.cpu_count() or os.cpu_count() or 1
     return HostSnapshot(
-        os_name=_os_name(),
+        os_name=read_os_name(),
         kernel=platform.release() or "unknown",
         arch=platform.machine() or "unknown",
         board=read_board(),
-        cpu_model=_cpu_model(),
+        cpu_model=read_cpu_model(),
         cpu_count=int(count),
         cpu_percent=float(psutil.cpu_percent(interval=None)),
-        load=_load_average(),
-        temperature_c=_temperature_c(),
+        load=read_load_average(),
+        temperature_c=read_temperature_c(),
         mem_used=int(memory.used),
         mem_total=int(memory.total),
         mem_percent=float(memory.percent),
@@ -74,6 +74,6 @@ def collect() -> HostSnapshot:
         python_version=platform.python_version(),
         discord_version=discord.__version__,
         pid=os.getpid(),
-        host_user=_host_user(),
-        timezone=_timezone_name(),
+        host_user=read_host_user(),
+        timezone=read_timezone(),
     )
