@@ -100,7 +100,9 @@ The image is posted in the channel.
 
 Errors are ephemeral.
 
-Errors after rendering starts remove the public "thinking" message and reply privately.
+Any failure after the command starts removes the public "thinking" message and replies privately, including a failed download.
+
+If Discord refuses to remove that message, the bot sends nothing.
 
 `page` starts at 1.
 
