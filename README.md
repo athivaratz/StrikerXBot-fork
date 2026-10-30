@@ -62,6 +62,8 @@ See `docs/ai-chat.md`.
 
 Slash commands are listed in `docs/commands.md`.
 
+`/status` posts bot and host status in a public embed.
+
 Set `DEV_GUILD_ID` to a server id to copy those commands to that server at startup.
 
 An empty `DEV_GUILD_ID` syncs them globally.

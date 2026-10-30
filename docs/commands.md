@@ -26,6 +26,38 @@ The reply is ephemeral.
 /help
 ```
 
+## /status
+
+`/status` shows bot and host status in one embed.
+
+The reply is public.
+
+The description lists the OS name, architecture, and kernel.
+
+The board name is a second line when the machine reports one.
+
+The fields cover latency, bot uptime, system uptime, CPU, memory, disk, Discord guild, user, and channel counts, the Python and discord.py versions, the process id, and the host timezone.
+
+Bot uptime and system uptime show a short duration, with the raw seconds underneath.
+
+CPU, memory, and disk include a usage bar.
+
+The embed colour is green, yellow, or red from the highest of those three.
+
+Latency is `n/a` until the bot has connected to Discord.
+
+The host user name is included when the caller's id is listed in `OWNER_IDS`.
+
+The hostname, IP addresses, file paths, environment values, and the token stay out of the reply.
+
+Each user can run it once every 15 seconds.
+
+A faster repeat gets an ephemeral reply with the wait, rounded up to whole seconds.
+
+```
+/status
+```
+
 ## /clear
 
 `/clear` deletes recent messages in this channel.
