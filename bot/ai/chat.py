@@ -18,9 +18,12 @@ from bot.ai.history import (
 from bot.ai.persona import DEFAULT_PERSONA
 from bot.ai.provider import chat
 from bot.ai.rate_limit import RequestLimit, TokenBudget, gate
+from bot.ai.reasoning import reasoning_field
 from bot.config import (
     AI_DAILY_TOKEN_BUDGET,
+    AI_MAX_TOKENS,
     AI_MODEL,
+    AI_REASONING_EFFORT,
     AI_REQUESTS_PER_MINUTE,
     BOT_DB_PATH,
     OPENROUTER_API_KEY,
@@ -97,6 +100,8 @@ async def _reply(
             AI_MODEL,
             session=session,
             api_key=OPENROUTER_API_KEY,
+            max_tokens=AI_MAX_TOKENS,
+            reasoning=reasoning_field(AI_REASONING_EFFORT),
         )
     await record_turn(
         channel_id,

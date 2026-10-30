@@ -6,6 +6,8 @@ from bot.ai import chat as chat_mod
 from bot.ai.history import current_store
 from bot.ai.persona import DEFAULT_PERSONA, MAX_PERSONA_LENGTH, PersonaError, validate_persona
 from bot.ai.provider import ChatReply
+from bot.ai.reasoning import reasoning_field
+from bot.config import AI_MAX_TOKENS, AI_REASONING_EFFORT
 from bot.storage import Store
 
 
@@ -39,8 +41,12 @@ def test_run_chat_picks_the_system_prompt(tmp_path, monkeypatch):
         *,
         session: object,
         api_key: str,
+        max_tokens: int,
+        reasoning: dict[str, bool | str],
     ) -> ChatReply:
         seen.append(messages)
+        assert max_tokens == AI_MAX_TOKENS
+        assert reasoning == reasoning_field(AI_REASONING_EFFORT)
         return ChatReply("pong", 2, 3)
 
     monkeypatch.setattr(chat_mod, "chat", fake_chat)

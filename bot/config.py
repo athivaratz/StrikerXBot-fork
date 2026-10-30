@@ -36,6 +36,18 @@ def _positive_int(name: str, default: int) -> int:
     return value
 
 
+def _choice(name: str, allowed: tuple[str, ...], default: str) -> str:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    value = raw.strip().lower()
+    if value in allowed:
+        return value
+    listed = ", ".join(allowed)
+    print(f"{name} must be one of {listed}. Using {default}.")
+    return default
+
+
 def _owner_ids() -> frozenset[int]:
     raw = os.getenv("OWNER_IDS") or ""
     ids: set[int] = set()
@@ -63,6 +75,12 @@ def _db_path() -> Path:
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY") or ""
 AI_MODEL = os.getenv("AI_MODEL") or "deepseek/deepseek-v4.1-flash"
+AI_REASONING_EFFORT = _choice(
+    "AI_REASONING_EFFORT",
+    ("off", "low", "medium", "high"),
+    "low",
+)
+AI_MAX_TOKENS = _positive_int("AI_MAX_TOKENS", 1024)
 AI_DAILY_TOKEN_BUDGET = _positive_int("AI_DAILY_TOKEN_BUDGET", 20000)
 AI_REQUESTS_PER_MINUTE = _positive_int("AI_REQUESTS_PER_MINUTE", 10)
 AI_HISTORY_DAYS = _positive_int("AI_HISTORY_DAYS", 7)
