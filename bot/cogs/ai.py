@@ -10,14 +10,7 @@ from discord.ext import commands
 from bot.ai.chat import run_chat
 from bot.ai.chunker import split_for_discord
 from bot.ai.provider import AIError, NO_ANSWER
-
-# One object so every send path refuses @everyone, roles, and user pings.
-NO_MENTIONS = discord.AllowedMentions.none()
-
-
-async def send_text(send, text: str) -> None:
-    """Discord would otherwise ping anyone the model echoes."""
-    await send(text, allowed_mentions=NO_MENTIONS)
+from bot.utils.discord_send import send_text
 
 
 def _chunks(reply: str) -> list[str]:
@@ -44,6 +37,7 @@ class AICog(commands.Cog):
             interaction.user.display_name,
             prompt,
             interaction.channel,
+            interaction.guild_id,
         )
         for chunk in _chunks(reply):
             await send_text(interaction.followup.send, chunk)
@@ -58,12 +52,16 @@ class AICog(commands.Cog):
         text = text.replace(f"<@!{self.bot.user.id}>", "").strip()
         if text == "":
             return
+        guild_id = None
+        if message.guild is not None:
+            guild_id = message.guild.id
         reply = await self._answer(
             message.author.id,
             message.channel.id,
             message.author.display_name,
             text,
             message.channel,
+            guild_id,
         )
         chunks = _chunks(reply)
         await send_text(message.reply, chunks[0])
@@ -77,12 +75,17 @@ class AICog(commands.Cog):
         speaker: str,
         text: str,
         channel: discord.abc.Messageable | None,
+        guild_id: int | None,
     ) -> str:
         try:
             if channel is None:
-                return await run_chat(user_id, channel_id, speaker, text)
+                return await run_chat(
+                    user_id, channel_id, speaker, text, guild_id=guild_id
+                )
             async with channel.typing():
-                return await run_chat(user_id, channel_id, speaker, text)
+                return await run_chat(
+                    user_id, channel_id, speaker, text, guild_id=guild_id
+                )
         except AIError as err:
             return str(err)
 

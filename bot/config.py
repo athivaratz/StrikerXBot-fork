@@ -20,7 +20,18 @@ _load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 TOKEN = os.getenv("TOKEN")
 
-# A bad value should not stop the rest of the bot from starting.
+# A bad value in these helpers should not stop the rest of the bot from starting.
+def _optional_int(name: str) -> int | None:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        print(f"{name} is not an integer. Ignoring it.")
+        return None
+
+
 def _positive_int(name: str, default: int) -> int:
     raw = os.getenv(name)
     if raw is None or not raw.strip():
@@ -34,6 +45,18 @@ def _positive_int(name: str, default: int) -> int:
         print(f"{name} must be at least 1. Using {default}.")
         return default
     return value
+
+
+def _choice(name: str, allowed: tuple[str, ...], default: str) -> str:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    value = raw.strip().lower()
+    if value in allowed:
+        return value
+    listed = ", ".join(allowed)
+    print(f"{name} must be one of {listed}. Using {default}.")
+    return default
 
 
 def _owner_ids() -> frozenset[int]:
@@ -50,11 +73,31 @@ def _owner_ids() -> frozenset[int]:
     return frozenset(ids)
 
 
+def _db_path() -> Path:
+    # Same root as .env, so a relative BOT_DB_PATH does not follow the shell cwd.
+    raw = os.getenv("BOT_DB_PATH")
+    if raw is None or not raw.strip():
+        raw = "data/bot.db"
+    path = Path(raw.strip())
+    if path.is_absolute():
+        return path
+    return Path(__file__).resolve().parent.parent / path
+
+
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY") or ""
 AI_MODEL = os.getenv("AI_MODEL") or "deepseek/deepseek-v4.1-flash"
+AI_REASONING_EFFORT = _choice(
+    "AI_REASONING_EFFORT",
+    ("off", "low", "medium", "high"),
+    "low",
+)
+AI_MAX_TOKENS = _positive_int("AI_MAX_TOKENS", 1024)
 AI_DAILY_TOKEN_BUDGET = _positive_int("AI_DAILY_TOKEN_BUDGET", 20000)
 AI_REQUESTS_PER_MINUTE = _positive_int("AI_REQUESTS_PER_MINUTE", 10)
+AI_HISTORY_DAYS = _positive_int("AI_HISTORY_DAYS", 7)
+BOT_DB_PATH = _db_path()
 OWNER_IDS = _owner_ids()
+DEV_GUILD_ID = _optional_int("DEV_GUILD_ID")
 
 PRIVACY_VOICE_CHANNEL_ID = 1564979389345562756
 OVERWRITE_ROLE_ID_1 = 1564494306792964097

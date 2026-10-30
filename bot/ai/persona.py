@@ -1,7 +1,26 @@
-"""Default system prompt.
+"""Default system prompt, and the check for a custom guild persona.
 
 Why a constant: the bot's voice is one string a beginner can edit.
+A custom persona is rejected here so the database never stores a blank or huge prompt.
 """
+
+MAX_PERSONA_LENGTH = 1500
+
+
+class PersonaError(ValueError):
+    """The text cannot be saved as a guild persona."""
+
+
+def validate_persona(text: str) -> str:
+    cleaned = text.strip()
+    if cleaned == "":
+        raise PersonaError("Persona text cannot be empty.")
+    if len(cleaned) > MAX_PERSONA_LENGTH:
+        raise PersonaError(
+            f"Persona text must be {MAX_PERSONA_LENGTH} characters or fewer."
+        )
+    return cleaned
+
 
 DEFAULT_PERSONA = """คุณคือบอททดสอบระบบของ StrikerX Server
 หน้าที่ของคุณคือทดสอบระบบต่าง ๆ ก่อนนำเข้าใช้งานจริง ผู้ที่คุยกับคุณส่วนใหญ่เป็นทีมพัฒนาหรือผู้ดูแลเซิร์ฟเวอร์ ซึ่งต้องการผลที่ชัดเจนและตรวจสอบต่อได้
