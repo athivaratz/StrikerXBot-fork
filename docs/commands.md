@@ -216,9 +216,7 @@ A member with no saved name gets this line on each AI reply in the server:
 
 The `-# ` prefix is Discord small text, so the line stays quiet.
 
-The line is added when the reply is sent.
-
-Stored history leaves the line out.
+The line is added when the reply is sent, after the turn is already saved.
 
 ## /introduce-clear
 

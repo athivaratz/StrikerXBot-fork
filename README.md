@@ -32,7 +32,9 @@ python run.py
 
 ## AI chat
 
-When `OPENROUTER_API_KEY` is set, the bot answers `/ask` and messages that mention it. Those user messages are stored in a local SQLite file and sent to OpenRouter. In a server, `/introduce` sets the name the bot uses for you.
+When `OPENROUTER_API_KEY` is set, the bot answers `/ask` and messages that mention it. Those user messages are stored in a local SQLite file and sent to OpenRouter.
+
+`/introduce` sets the name the bot uses for you in this server, and a missing name adds a short reminder on each AI reply there.
 
 The file is `BOT_DB_PATH` (default `data/bot.db`). Turns are kept for `AI_HISTORY_DAYS` days (default 7). Token counts are not purged in this phase.
 

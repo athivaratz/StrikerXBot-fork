@@ -80,9 +80,9 @@ A saved name is written as `- id 123: Pim (display name Ann)`. The part in paren
 
 With no saved name, the line is `- id 123: Ann`.
 
-That display name is the newest one stored for the id.
+For someone already in the history, that display name is the newest one stored for their id.
 
-The current speaker uses the display name from the message that just arrived.
+For the person speaking now, the display name comes from the message that just arrived.
 
 A direct message has no server, so the label uses the display name.
 
