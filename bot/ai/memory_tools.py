@@ -3,7 +3,6 @@
 The cog stays thin, and tests can call these without Discord.
 """
 
-from bot.ai.chat import label_turn
 from bot.ai.persona import DEFAULT_PERSONA
 from bot.ai.speakers import display_name
 from bot.storage import Store, Turn
@@ -13,10 +12,15 @@ _SNIPPET = 100
 
 
 def strip_speaker_label(speaker: str, user_id: int, user_text: str) -> str:
-    """A display name can contain ": ", so the prefix has to be exact."""
-    prefix = label_turn(speaker, user_id, "")
-    if user_text.startswith(prefix):
-        return user_text[len(prefix):]
+    """The label may hold a saved /introduce name instead of the display name.
+
+    Only the id part is fixed, so look for that. A display name can contain
+    ": ", which is why the old format still needs the exact prefix.
+    """
+    marker = f" (id {user_id}): "
+    position = user_text.find(marker)
+    if position != -1:
+        return user_text[position + len(marker):]
     legacy = f"{display_name(speaker)}: "
     if user_text.startswith(legacy):
         return user_text[len(legacy):]

@@ -83,6 +83,12 @@ def test_strip_speaker_label_handles_id_and_legacy_prefixes():
     assert strip_speaker_label("Ann: Bee", 7, "Ann: Bee: hi: there") == "hi: there"
 
 
+def test_strip_speaker_label_handles_a_saved_name():
+    # The row keeps the display name, but the label used the /introduce name.
+    assert strip_speaker_label("Ann", 4, "Pim (id 4): hi") == "hi"
+    assert strip_speaker_label("Ann", 4, "Pim (id 4): a (id 4): b") == "a (id 4): b"
+
+
 def test_delete_guild_turns_leaves_other_guilds(tmp_path):
     store = Store(tmp_path / "guilds.db")
 
@@ -139,3 +145,23 @@ def test_reset_without_custom_persona_keeps_turns(tmp_path):
     assert removed is False
     assert cleared == 0
     assert len(left) == 1
+
+
+def test_reset_with_custom_persona_clears_that_guild(tmp_path):
+    store = Store(tmp_path / "reset_custom.db")
+
+    async def run():
+        await store.set_persona(9, "Old voice", 1, 1.0)
+        await store.add_turn(1, 9, 7, "Ann", "Ann: a", "ra", 2)
+        await store.add_turn(2, 10, 7, "Ann", "Ann: b", "rb", 3)
+        result = await reset_persona_and_history(store, 9)
+        persona = await store.get_persona(9)
+        here = await store.recent_turns(1, 10, -1.0)
+        other = await store.recent_turns(2, 10, -1.0)
+        return result, persona, here, other
+
+    result, persona, here, other = asyncio.run(run())
+    assert result == (True, 1)
+    assert persona is None
+    assert here == []
+    assert len(other) == 1
