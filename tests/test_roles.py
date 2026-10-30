@@ -110,7 +110,8 @@ def test_plan_replace_skips_managed_and_high_roles() -> None:
     actor = Member(10, Role(5, 5, name="mod"), [])
     bot_member = Member(12, Role(6, 6, name="bot"), [])
     target = Member(11, high, [everyone, low, managed, high])
-    remove, skip = plan_replace(actor, target, bot_member, guild)
+    chosen = Role(20, 3, name="chosen")
+    remove, skip = plan_replace(actor, target, chosen, bot_member, guild)
     assert [item.name for item in remove] == ["low"]
     assert [item.name for item in skip] == ["integration", "admin"]
 
@@ -125,6 +126,20 @@ def test_plan_replace_owner_can_remove_roles_above_them() -> None:
     actor = Member(10, Role(5, 4, name="owner"), [])
     bot_member = Member(12, Role(6, 10, name="bot"), [])
     target = Member(11, above_owner, [everyone, low, managed, above_owner, above_bot])
-    remove, skip = plan_replace(actor, target, bot_member, guild)
+    chosen = Role(20, 3, name="chosen")
+    remove, skip = plan_replace(actor, target, chosen, bot_member, guild)
     assert [item.name for item in remove] == ["low", "admin"]
     assert [item.name for item in skip] == ["integration", "over-bot"]
+
+
+def test_plan_replace_leaves_the_new_role_out() -> None:
+    everyone = Role(1, 0, name="@everyone", default=True)
+    keep = Role(2, 1, name="keep")
+    other = Role(3, 2, name="other")
+    guild = Guild(99, everyone)
+    actor = Member(10, Role(5, 5, name="mod"), [])
+    bot_member = Member(12, Role(6, 6, name="bot"), [])
+    target = Member(11, other, [everyone, keep, other])
+    remove, skip = plan_replace(actor, target, keep, bot_member, guild)
+    assert [item.name for item in remove] == ["other"]
+    assert skip == []

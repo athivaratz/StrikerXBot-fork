@@ -56,6 +56,8 @@ Discord shows the command to members with that permission.
 
 The bot needs Manage Roles.
 
+That permission is checked before the command runs.
+
 Its highest role must sit above the role it changes.
 
 Each subcommand takes a member and a role.

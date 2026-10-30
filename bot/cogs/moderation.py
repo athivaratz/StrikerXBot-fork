@@ -60,6 +60,7 @@ class ModerationCog(commands.Cog):
     @role.command(name="add", description="Give a member a role")
     @app_commands.describe(member="Member who receives the role", role="Role to add")
     @app_commands.checks.has_permissions(manage_roles=True)
+    @app_commands.checks.bot_has_permissions(manage_roles=True)
     async def role_add(
         self,
         interaction: discord.Interaction,
@@ -71,6 +72,7 @@ class ModerationCog(commands.Cog):
     @role.command(name="remove", description="Take a role from a member")
     @app_commands.describe(member="Member who loses the role", role="Role to remove")
     @app_commands.checks.has_permissions(manage_roles=True)
+    @app_commands.checks.bot_has_permissions(manage_roles=True)
     async def role_remove(
         self,
         interaction: discord.Interaction,
@@ -82,6 +84,7 @@ class ModerationCog(commands.Cog):
     @role.command(name="replace", description="Replace a member's roles with one role")
     @app_commands.describe(member="Member whose roles change", role="The role they should keep")
     @app_commands.checks.has_permissions(manage_roles=True)
+    @app_commands.checks.bot_has_permissions(manage_roles=True)
     async def role_replace(
         self,
         interaction: discord.Interaction,

@@ -65,6 +65,7 @@ def check_role_change(
 def plan_replace(
     actor: MemberLike,
     target: RosterMember,
+    new_role: RoleLike,
     bot_member: MemberLike,
     guild: GuildLike,
 ) -> tuple[list[RoleLike], list[RoleLike]]:
@@ -74,6 +75,9 @@ def plan_replace(
     owner = _is_owner(actor, guild)
     for role in target.roles:
         if _is_everyone(role, guild):
+            continue
+        # The caller adds this role after the removals, so it must stay put.
+        if role.id == new_role.id:
             continue
         above_bot = role.position >= bot_member.top_role.position
         above_actor = role.position >= actor.top_role.position

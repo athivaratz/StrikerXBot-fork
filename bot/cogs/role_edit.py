@@ -43,7 +43,7 @@ async def _apply(
     if action == "remove":
         await member.remove_roles(role, reason=audit)
         return f"Removed {role.name} from {member.display_name}."
-    remove, skip = plan_replace(actor, member, bot_member, guild)
+    remove, skip = plan_replace(actor, member, role, bot_member, guild)
     if remove:
         await member.remove_roles(*remove, reason=audit)
     await member.add_roles(role, reason=audit)
