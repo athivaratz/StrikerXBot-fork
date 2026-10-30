@@ -10,14 +10,7 @@ from discord.ext import commands
 from bot.ai.chat import run_chat
 from bot.ai.chunker import split_for_discord
 from bot.ai.provider import AIError, NO_ANSWER
-
-# One object so every send path refuses @everyone, roles, and user pings.
-NO_MENTIONS = discord.AllowedMentions.none()
-
-
-async def send_text(send, text: str) -> None:
-    """Discord would otherwise ping anyone the model echoes."""
-    await send(text, allowed_mentions=NO_MENTIONS)
+from bot.utils.discord_send import NO_MENTIONS, send_text
 
 
 def _chunks(reply: str) -> list[str]:

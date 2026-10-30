@@ -28,6 +28,7 @@ class StrikerXBot(commands.Bot):
             print("OPENROUTER_API_KEY is not set. AI chat will not load.")
             return
         await self.load_extension("bot.cogs.ai")
+        await self.load_extension("bot.cogs.memory")
         try:
             await self.tree.sync()
         except discord.HTTPException as err:
