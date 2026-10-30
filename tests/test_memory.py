@@ -5,6 +5,7 @@ from bot.ai.memory_tools import (
     delete_own_turns,
     format_view,
     reset_persona_and_history,
+    strip_speaker_label,
     wipe_channel,
 )
 from bot.storage import Store, Turn
@@ -74,6 +75,12 @@ def test_view_strips_exact_label_when_name_contains_colon():
     )
     shown = format_view(1, [row])
     assert shown.splitlines()[-1] == "hi: there"
+
+
+def test_strip_speaker_label_handles_id_and_legacy_prefixes():
+    assert strip_speaker_label("Ann", 4, "Ann (id 4): hi") == "hi"
+    assert strip_speaker_label("Ann", 4, "Ann: hi") == "hi"
+    assert strip_speaker_label("Ann: Bee", 7, "Ann: Bee: hi: there") == "hi: there"
 
 
 def test_delete_guild_turns_leaves_other_guilds(tmp_path):

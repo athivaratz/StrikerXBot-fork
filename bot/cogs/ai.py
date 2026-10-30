@@ -9,8 +9,25 @@ from discord.ext import commands
 
 from bot.ai.chat import run_chat
 from bot.ai.chunker import split_for_discord
+from bot.ai.message_text import name_mentions, strip_bot_mention, with_reply_context
 from bot.ai.provider import AIError, NO_ANSWER
 from bot.utils.discord_send import send_text
+
+
+def _text_for_model(message: discord.Message, bot_id: int) -> str:
+    """Mentions and a Discord reply are ids until they are written out."""
+    text = strip_bot_mention(message.content, bot_id)
+    if text == "":
+        return ""
+    people = [(user.id, user.display_name) for user in message.mentions]
+    text = name_mentions(text, people)
+    reference = message.reference
+    if reference is None or not isinstance(reference.resolved, discord.Message):
+        return text
+    replied = reference.resolved
+    return with_reply_context(
+        text, replied.author.display_name, replied.author.id, replied.content
+    )
 
 
 def _chunks(reply: str) -> list[str]:
@@ -48,8 +65,7 @@ class AICog(commands.Cog):
             return
         if self.bot.user is None or self.bot.user not in message.mentions:
             return
-        text = message.content.replace(f"<@{self.bot.user.id}>", "")
-        text = text.replace(f"<@!{self.bot.user.id}>", "").strip()
+        text = _text_for_model(message, self.bot.user.id)
         if text == "":
             return
         guild_id = None

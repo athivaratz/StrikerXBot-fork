@@ -14,9 +14,11 @@ from bot.ai.history import (
     load_context,
     lock_for,
     record_turn,
+    turns_to_messages,
 )
-from bot.ai.persona import DEFAULT_PERSONA
+from bot.ai.persona import CHAT_RULES, DEFAULT_PERSONA
 from bot.ai.provider import chat
+from bot.ai.speakers import display_name, people_block
 from bot.ai.rate_limit import RequestLimit, TokenBudget, gate
 from bot.ai.reasoning import reasoning_field
 from bot.config import (
@@ -29,7 +31,7 @@ from bot.config import (
     OPENROUTER_API_KEY,
     OWNER_IDS,
 )
-from bot.storage import Store
+from bot.storage import Store, Turn
 
 _db = Store(BOT_DB_PATH)
 bind_store(_db)
@@ -47,11 +49,21 @@ def use_store(store: Store) -> None:
     budget.bind(store)
 
 
-def label_turn(speaker_name: str, text: str) -> str:
+def label_turn(speaker_name: str, user_id: int, text: str) -> str:
     """Prefix the speaker so people in one channel are not mixed together."""
-    cleaned = " ".join(speaker_name.split()) if speaker_name else ""
-    name = cleaned or "Someone"
-    return f"{name}: {text}"
+    return f"{display_name(speaker_name)} (id {user_id}): {text}"
+
+
+def _system_prompt(
+    persona: str, turns: list[Turn], user_id: int, speaker_name: str
+) -> str:
+    """Rules sit under the persona so a custom voice cannot drop them."""
+    if persona.endswith("\n"):
+        head = persona
+    else:
+        head = f"{persona}\n"
+    people = people_block(turns, user_id, speaker_name)
+    return f"{head}\n{CHAT_RULES}\n\n{people}"
 
 
 async def _persona(guild_id: int | None) -> str:
@@ -87,12 +99,16 @@ async def _reply(
     blocked = await gate(user_id, OWNER_IDS, limiter, budget)
     if blocked is not None:
         return blocked
+    turns = await load_context(channel_id)
+    persona = await _persona(guild_id)
     messages: list[dict[str, str]] = [
-        {"role": "system", "content": await _persona(guild_id)}
+        {
+            "role": "system",
+            "content": _system_prompt(persona, turns, user_id, speaker_name),
+        }
     ]
-    for role, content in await load_context(channel_id):
-        messages.append({"role": role, "content": content})
-    user_line = label_turn(speaker_name, text)
+    messages.extend(turns_to_messages(turns))
+    user_line = label_turn(speaker_name, user_id, text)
     messages.append({"role": "user", "content": user_line})
     async with aiohttp.ClientSession() as session:
         reply = await chat(

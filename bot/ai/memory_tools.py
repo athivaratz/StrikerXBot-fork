@@ -5,17 +5,21 @@ The cog stays thin, and tests can call these without Discord.
 
 from bot.ai.chat import label_turn
 from bot.ai.persona import DEFAULT_PERSONA
+from bot.ai.speakers import display_name
 from bot.storage import Store, Turn
 
 _PREVIEW = 300
 _SNIPPET = 100
 
 
-def strip_speaker_label(speaker: str, user_text: str) -> str:
+def strip_speaker_label(speaker: str, user_id: int, user_text: str) -> str:
     """A display name can contain ": ", so the prefix has to be exact."""
-    prefix = label_turn(speaker, "")
+    prefix = label_turn(speaker, user_id, "")
     if user_text.startswith(prefix):
         return user_text[len(prefix):]
+    legacy = f"{display_name(speaker)}: "
+    if user_text.startswith(legacy):
+        return user_text[len(legacy):]
     return user_text
 
 
@@ -30,7 +34,9 @@ def format_view(count: int, rows: list[Turn]) -> str:
         return "You have no stored messages in this channel."
     lines = [f"You have {count} stored messages in this channel."]
     for row in rows:
-        lines.append(shorten(strip_speaker_label(row.speaker, row.user_text)))
+        lines.append(
+            shorten(strip_speaker_label(row.speaker, row.user_id, row.user_text))
+        )
     return "\n".join(lines)
 
 
