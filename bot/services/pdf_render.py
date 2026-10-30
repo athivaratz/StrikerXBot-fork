@@ -39,7 +39,11 @@ def render_pdf_page(data: bytes, page: int, dpi: int) -> bytes:
         reason = validate_page_range(page, doc.page_count)
         if reason is not None:
             raise PdfRequestError(reason)
-        pixmap = doc[page - 1].get_pixmap(dpi=dpi)
-        return pixmap.tobytes("png")
+        try:
+            pixmap = doc[page - 1].get_pixmap(dpi=dpi)
+            return pixmap.tobytes("png")
+        except Exception as err:
+            # A bad page should stay a request error, not an uncaught traceback.
+            raise PdfRequestError("That page could not be rendered.") from err
     finally:
         doc.close()

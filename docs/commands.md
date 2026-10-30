@@ -100,6 +100,8 @@ The image is posted in the channel.
 
 Errors are ephemeral.
 
+Errors after rendering starts remove the public "thinking" message and reply privately.
+
 `page` starts at 1.
 
 `dpi` runs from 72 to 300. The default is 150.

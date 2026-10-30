@@ -39,6 +39,15 @@ def test_render_page_two_is_a_png() -> None:
     assert png.startswith(b"\x89PNG")
 
 
+def test_render_wraps_a_pixmap_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    def broken(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("pixmap failed")
+
+    monkeypatch.setattr(pymupdf.Page, "get_pixmap", broken)
+    with pytest.raises(PdfRequestError, match="could not be rendered"):
+        render_pdf_page(_two_page_pdf(), 1, 72)
+
+
 def test_render_rejects_corrupt_bytes() -> None:
     with pytest.raises(PdfRequestError, match="opened as a PDF"):
         render_pdf_page(b"not a pdf", 1, 72)
