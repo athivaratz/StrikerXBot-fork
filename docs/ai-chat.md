@@ -66,15 +66,35 @@ Token counts are not purged in this phase.
 
 `bot/ai/chunker.py` splits a reply longer than 2000 characters. It prefers a blank line, then a single line break. A code fence stays in one message when the fence fits.
 
-`bot/ai/chat.py` saves one row for each reply. The stored user line is labeled `Ann (id 123): hello`. The assistant reply is stored as the model wrote it.
+`bot/ai/chat.py` saves one row for each reply. The stored user line is the same text as the label, for example `Pim (id 4): hi`. The assistant reply is stored as the model wrote it.
 
 The next request sends the last 10 rows for that channel, oldest first.
 
-The system prompt starts with the persona. Speaker rules come next. They tell the model that each user message starts with a name and Discord id, to answer the person in the newest message, and to follow the persona when older replies use another style.
+The system prompt starts with the persona. Speaker rules come next. They tell the model that each user message starts with a name and Discord id, to answer the person in the newest message, to call people by the name in the people list, and to follow the persona when older replies use another style.
 
-The prompt then lists each person in those rows and the person who just spoke, one line per id: `- id 123: Ann`.
+In a server, one query loads saved names for the current user and for every user id in those rows.
 
-That line uses the newest display name for the id. The current speaker's display name is the one used for their id.
+The label and the people list use a saved name when that member has one. The display name is used when no name is saved.
+
+A saved name is written as `- id 123: Pim (display name Ann)`. The part in parentheses is the display name.
+
+With no saved name, the line is `- id 123: Ann`.
+
+That display name is the newest one stored for the id.
+
+The current speaker uses the display name from the message that just arrived.
+
+A direct message has no server, so the label uses the display name.
+
+After the reply is stored, a server reply for a member with no saved name adds this line:
+
+```
+-# You have not introduced yourself yet. Use /introduce to tell me what to call you.
+```
+
+The line is added for `/ask` and for mentions.
+
+The turn is stored before that line is added. Later prompts see only the stored turn.
 
 A mention of another user is sent as `@Ann (id 123)`.
 
@@ -92,7 +112,7 @@ A turn stores the speaker display name, the user id, the channel id, the guild i
 
 A DM has no guild id.
 
-The same file stores daily token counts and each server's persona text.
+The same file stores daily token counts, each server's persona text, and the name each member picks with `/introduce`.
 
 `bot/cogs/ai.py` is the Discord cog. It shows typing while it waits.
 
@@ -188,7 +208,7 @@ When `OPENROUTER_API_KEY` is empty, startup prints this line and continues witho
 OPENROUTER_API_KEY is not set. AI chat will not load.
 ```
 
-`bot.cogs.ai` and `bot.cogs.memory` load only when that key is set.
+`bot.cogs.ai`, `bot.cogs.memory`, and `bot.cogs.introduce` load only when that key is set.
 
 `bot.cogs.help`, `bot.cogs.moderation`, and `bot.cogs.pdf` load on every startup.
 

@@ -12,7 +12,7 @@ Extra permissions are named on the command that needs them.
 
 An ephemeral reply is visible only to the person who ran the command.
 
-`/ask`, `/memory`, and `/persona` are registered only when `OPENROUTER_API_KEY` is set.
+`/ask`, `/memory`, `/persona`, `/introduce`, and `/introduce-clear` are registered only when `OPENROUTER_API_KEY` is set.
 
 ## /help
 
@@ -186,6 +186,54 @@ Later replies use the default persona.
 /persona show
 /persona set text: You are a helpful bot.
 /persona reset
+```
+
+## /introduce
+
+`/introduce` saves the name the bot uses for you in this server.
+
+It runs in a server.
+
+The reply is ephemeral.
+
+Spaces at the ends are removed. Repeated spaces become one space.
+
+The name must be 32 characters or fewer.
+
+`@`, `<`, `>`, a backtick, and a new line are rejected.
+
+A name that fails those checks gets an ephemeral reply with the reason.
+
+```
+/introduce name: Pim
+```
+
+A member with no saved name gets this line on each AI reply in the server:
+
+```
+-# You have not introduced yourself yet. Use /introduce to tell me what to call you.
+```
+
+The `-# ` prefix is Discord small text, so the line stays quiet.
+
+The line is added when the reply is sent.
+
+Stored history leaves the line out.
+
+## /introduce-clear
+
+`/introduce-clear` removes the name you saved in this server.
+
+It runs in a server.
+
+The reply is ephemeral.
+
+When a name was saved, the bot uses your display name again.
+
+When no name was saved, the reply says you have not set a name in this server.
+
+```
+/introduce-clear
 ```
 
 ## Changes from the prefix commands
