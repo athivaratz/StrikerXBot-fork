@@ -32,10 +32,12 @@ class FakeSession:
         self._items = list(items)
         self.calls = 0
         self.headers = None
+        self.bodies: list = []
 
     def post(self, url: str, **kwargs):
         self.calls += 1
         self.headers = kwargs.get("headers")
+        self.bodies.append(kwargs.get("json"))
         item = self._items.pop(0)
         if isinstance(item, Exception):
             raise item
@@ -53,7 +55,7 @@ def _status(code: int) -> FakeResponse:
     return FakeResponse(code, {})
 
 
-def _run(session: FakeSession, slept: list[float]):
+def _run(session: FakeSession, slept: list[float], **extra: object):
     async def sleep(seconds: float) -> None:
         slept.append(seconds)
 
@@ -64,6 +66,7 @@ def _run(session: FakeSession, slept: list[float]):
             session=session,
             api_key=SECRET_KEY,
             sleep=sleep,
+            **extra,
         )
     )
 

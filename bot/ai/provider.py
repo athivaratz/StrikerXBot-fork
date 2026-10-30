@@ -18,6 +18,7 @@ MAX_ATTEMPTS = 3
 BUSY = "The AI service is busy. Please try again in a moment."
 TOO_LONG = "The AI service took too long. Please try again."
 NO_ANSWER = "The AI service could not answer. Please try again."
+CUT_OFF = "The answer was cut off before it finished. Please ask for a shorter answer."
 
 
 class AIError(Exception):
@@ -34,6 +35,10 @@ class ChatReply:
 class _Retry(Exception):
     def __init__(self, status: int) -> None:
         self.status = status
+
+
+class _RejectedReasoning(Exception):
+    """Some models reject the reasoning field. One retry omits it."""
 
 
 def _count(value: object) -> int:
@@ -56,6 +61,9 @@ def _reply_from(payload: object) -> ChatReply:
         raise AIError(NO_ANSWER)
     content = message.get("content")
     if not isinstance(content, str) or content.strip() == "":
+        # Reasoning can consume the whole max_tokens budget and leave no text.
+        if choice.get("finish_reason") == "length":
+            raise AIError(CUT_OFF)
         raise AIError(NO_ANSWER)
     usage = payload.get("usage")
     if not isinstance(usage, dict):
@@ -72,12 +80,20 @@ async def _post(
     model: str,
     messages: list[dict[str, str]],
     api_key: str,
+    max_tokens: int,
+    reasoning: dict | None,
 ) -> ChatReply:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    body = {"model": model, "messages": messages, "max_tokens": MAX_OUTPUT_TOKENS}
+    body: dict[str, object] = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": max_tokens,
+    }
+    if reasoning is not None:
+        body["reasoning"] = reasoning
     timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
     async with session.post(
         CHAT_URL, json=body, headers=headers, timeout=timeout
@@ -91,6 +107,9 @@ async def _post(
             return _reply_from(payload)
         # Drop the body so the connection can be reused. Do not log it.
         await response.read()
+        if status == 400 and reasoning is not None:
+            print("AI request failed with status 400. Retrying without reasoning settings.")
+            raise _RejectedReasoning
         print(f"AI request failed with status {status}")
         if status == 429 or 500 <= status <= 599:
             raise _Retry(status)
@@ -104,15 +123,24 @@ async def chat(
     session: aiohttp.ClientSession,
     api_key: str,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    max_tokens: int = MAX_OUTPUT_TOKENS,
+    reasoning: dict | None = None,
 ) -> ChatReply:
     """Retry only 429 and 5xx. A bad request should not be sent three times."""
-    for attempt in range(MAX_ATTEMPTS):
+    # A rejected reasoning field is one extra try, outside the 429 and 5xx budget.
+    attempt = 0
+    while attempt < MAX_ATTEMPTS:
         try:
-            return await _post(session, model, messages, api_key)
+            return await _post(session, model, messages, api_key, max_tokens, reasoning)
+        except _RejectedReasoning:
+            if reasoning is None:
+                raise AIError(NO_ANSWER) from None
+            reasoning = None
         except _Retry:
             if attempt == MAX_ATTEMPTS - 1:
                 raise AIError(BUSY) from None
             await sleep(1.0 if attempt == 0 else 2.0)
+            attempt += 1
         except TimeoutError:
             print("AI request timed out")
             raise AIError(TOO_LONG) from None

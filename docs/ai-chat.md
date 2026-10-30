@@ -24,9 +24,29 @@ flowchart LR
 
 A 429 or a 5xx status is tried again twice.
 
+A 400 on a request that included reasoning settings is tried once more without those settings.
+
 A timeout, a connection error, or any other status stops after one try.
 
 The error shown in Discord is a short sentence.
+
+If the reply text is empty and the finish reason is `length`, the bot shows this line:
+
+```
+The answer was cut off before it finished. Please ask for a shorter answer.
+```
+
+`AI_MAX_TOKENS` is sent as `max_tokens`. The default is 1024.
+
+Reasoning tokens count toward `max_tokens`.
+
+They also count toward the daily token budget, because the budget adds prompt and completion tokens as OpenRouter reports them.
+
+`AI_REASONING_EFFORT` is `off`, `low`, `medium`, or `high`. The default is `low`.
+
+`off` turns reasoning off.
+
+`low`, `medium`, and `high` send that effort.
 
 `bot/ai/persona.py` holds `DEFAULT_PERSONA`. That string is the system prompt when a server has no saved persona.
 
@@ -123,6 +143,8 @@ The bot reads these variables the same way it reads `TOKEN`. A value already set
 ```
 OPENROUTER_API_KEY=
 AI_MODEL=deepseek/deepseek-v4.1-flash
+AI_REASONING_EFFORT=low
+AI_MAX_TOKENS=1024
 AI_REQUESTS_PER_MINUTE=10
 AI_DAILY_TOKEN_BUDGET=20000
 AI_HISTORY_DAYS=7
@@ -131,6 +153,10 @@ OWNER_IDS=
 ```
 
 `OWNER_IDS` is a comma-separated list of Discord user ids.
+
+`AI_REASONING_EFFORT` is `off`, `low`, `medium`, or `high`. The default is `low`.
+
+`AI_MAX_TOKENS` is the completion limit for one reply. The default is 1024.
 
 `AI_HISTORY_DAYS` is how many days of turns stay in the file. The default is 7.
 

@@ -40,7 +40,17 @@ The file is `BOT_DB_PATH` (default `data/bot.db`). Turns are kept for `AI_HISTOR
 
 `/persona show`, `/persona set`, and `/persona reset` read or change the server persona. Set and reset require Manage Server.
 
-The other settings are `AI_MODEL`, `AI_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET`, `AI_HISTORY_DAYS`, `BOT_DB_PATH`, `OWNER_IDS`, and `DEV_GUILD_ID`. They load the same way `TOKEN` does.
+The other settings are `AI_MODEL`, `AI_REASONING_EFFORT`, `AI_MAX_TOKENS`, `AI_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET`, `AI_HISTORY_DAYS`, `BOT_DB_PATH`, `OWNER_IDS`, and `DEV_GUILD_ID`. They load the same way `TOKEN` does.
+
+`AI_REASONING_EFFORT` is `off`, `low`, `medium`, or `high`. The default is `low`.
+
+`AI_MAX_TOKENS` defaults to 1024.
+
+Reasoning tokens count toward that limit and toward the daily token budget, because the budget adds prompt and completion tokens as OpenRouter reports them.
+
+A 400 response that included reasoning settings is retried once without reasoning settings.
+
+If the reply text is empty and the finish reason is `length`, the bot says: "The answer was cut off before it finished. Please ask for a shorter answer."
 
 When the key is empty, startup prints that AI chat will not load.
 
