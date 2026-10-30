@@ -18,9 +18,9 @@ from bot.ai.history import (
 )
 from bot.ai.persona import CHAT_RULES, DEFAULT_PERSONA
 from bot.ai.provider import chat
-from bot.ai.speakers import display_name, people_block
 from bot.ai.rate_limit import RequestLimit, TokenBudget, gate
 from bot.ai.reasoning import reasoning_field
+from bot.ai.speakers import display_name, people_block
 from bot.config import (
     AI_DAILY_TOKEN_BUDGET,
     AI_MAX_TOKENS,
