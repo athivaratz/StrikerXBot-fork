@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TypeVar
 
 from bot import storage_meta as meta
+from bot import storage_profiles as profiles
 from bot import storage_turns as turns
 from bot.storage_sql import Turn, ensure_schema, insert_turn, open_connection
 
@@ -127,3 +128,23 @@ class Store:
 
     async def reset_persona(self, guild_id: int) -> bool:
         return await self._run(lambda conn: meta.reset_persona(conn, guild_id))
+
+    async def get_alias(self, guild_id: int, user_id: int) -> str | None:
+        return await self._run(lambda conn: profiles.get_alias(conn, guild_id, user_id))
+
+    async def get_aliases(self, guild_id: int, user_ids: list[int]) -> dict[int, str]:
+        return await self._run(
+            lambda conn: profiles.get_aliases(conn, guild_id, user_ids)
+        )
+
+    async def set_alias(
+        self, guild_id: int, user_id: int, alias: str, updated_at: float
+    ) -> None:
+        await self._run(
+            lambda conn: profiles.set_alias(conn, guild_id, user_id, alias, updated_at)
+        )
+
+    async def clear_alias(self, guild_id: int, user_id: int) -> bool:
+        return await self._run(
+            lambda conn: profiles.clear_alias(conn, guild_id, user_id)
+        )
