@@ -50,10 +50,23 @@ def _owner_ids() -> frozenset[int]:
     return frozenset(ids)
 
 
+def _db_path() -> Path:
+    # Same root as .env, so a relative BOT_DB_PATH does not follow the shell cwd.
+    raw = os.getenv("BOT_DB_PATH")
+    if raw is None or not raw.strip():
+        raw = "data/bot.db"
+    path = Path(raw.strip())
+    if path.is_absolute():
+        return path
+    return Path(__file__).resolve().parent.parent / path
+
+
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY") or ""
 AI_MODEL = os.getenv("AI_MODEL") or "deepseek/deepseek-v4.1-flash"
 AI_DAILY_TOKEN_BUDGET = _positive_int("AI_DAILY_TOKEN_BUDGET", 20000)
 AI_REQUESTS_PER_MINUTE = _positive_int("AI_REQUESTS_PER_MINUTE", 10)
+AI_HISTORY_DAYS = _positive_int("AI_HISTORY_DAYS", 7)
+BOT_DB_PATH = _db_path()
 OWNER_IDS = _owner_ids()
 
 PRIVACY_VOICE_CHANNEL_ID = 1564979389345562756
