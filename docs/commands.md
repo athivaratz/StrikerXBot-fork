@@ -170,11 +170,15 @@ Replies are ephemeral.
 
 `/persona set` stores a custom persona. The user needs Manage Server.
 
+It clears this server's stored turns. Old replies are written in the previous voice, and the model copies that voice.
+
 Empty text is rejected.
 
 Text longer than 1500 characters is rejected.
 
 `/persona reset` removes the saved persona. The user needs Manage Server.
+
+When a saved persona is removed, it also clears this server's stored turns.
 
 Later replies use the default persona.
 

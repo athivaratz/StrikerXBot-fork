@@ -48,7 +48,7 @@ They also count toward the daily token budget, because the budget adds prompt an
 
 `low`, `medium`, and `high` send that effort.
 
-`bot/ai/persona.py` holds `DEFAULT_PERSONA`. That string is the system prompt when a server has no saved persona.
+`bot/ai/persona.py` holds `DEFAULT_PERSONA`. A server with no saved persona uses that text as its persona.
 
 `bot/ai/rate_limit.py` keeps a per-user request count in memory.
 
@@ -66,9 +66,19 @@ Token counts are not purged in this phase.
 
 `bot/ai/chunker.py` splits a reply longer than 2000 characters. It prefers a blank line, then a single line break. A code fence stays in one message when the fence fits.
 
-`bot/ai/chat.py` saves one row for each reply. The row stores the labeled user line (`Name: text`) and the assistant reply.
+`bot/ai/chat.py` saves one row for each reply. The stored user line is labeled `Ann (id 123): hello`. The assistant reply is stored as the model wrote it.
 
 The next request sends the last 10 rows for that channel, oldest first.
+
+The system prompt starts with the persona. Speaker rules come next. They tell the model that each user message starts with a name and Discord id, to answer the person in the newest message, and to follow the persona when older replies use another style.
+
+The prompt then lists each person in those rows and the person who just spoke, one line per id: `- id 123: Ann`.
+
+That line uses the newest display name for the id. The current speaker's display name is the one used for their id.
+
+A mention of another user is sent as `@Ann (id 123)`.
+
+When the message is a reply and the referenced message is available, the text starts with `Replying to Ann (id 123): "snippet"`. The quote is cut after 200 characters.
 
 Rows older than `AI_HISTORY_DAYS` are left out of the request. The default is 7 days.
 
@@ -122,13 +132,21 @@ A long persona is cut after 300 characters in that reply.
 
 `/persona set` stores a custom system prompt for this server. It requires the Manage Server permission.
 
+It deletes this server's stored turns. Old replies are written in the previous voice, and the model copies that voice.
+
 Empty text is rejected. Text longer than 1500 characters is rejected.
 
 ```
 /persona set text: You are a helpful bot.
 ```
 
-`/persona reset` deletes the saved persona for this server. Later replies use `DEFAULT_PERSONA`. It requires the Manage Server permission.
+`/persona reset` deletes the saved persona for this server. It requires the Manage Server permission.
+
+It then deletes this server's stored turns.
+
+Later replies use `DEFAULT_PERSONA`.
+
+When the server is already using the default persona, the stored turns stay.
 
 ```
 /persona reset

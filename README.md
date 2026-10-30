@@ -38,7 +38,7 @@ The file is `BOT_DB_PATH` (default `data/bot.db`). Turns are kept for `AI_HISTOR
 
 `/memory view` and `/memory clear` show or delete your stored turns. `/memory wipe-channel` deletes stored turns for that channel and requires Manage Messages.
 
-`/persona show`, `/persona set`, and `/persona reset` read or change the server persona. Set and reset require Manage Server.
+`/persona show`, `/persona set`, and `/persona reset` read or change the server persona. Set and reset require Manage Server. Changing the persona clears that server's stored turns.
 
 The other settings are `AI_MODEL`, `AI_REASONING_EFFORT`, `AI_MAX_TOKENS`, `AI_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET`, `AI_HISTORY_DAYS`, `BOT_DB_PATH`, `OWNER_IDS`, and `DEV_GUILD_ID`. They load the same way `TOKEN` does.
 
