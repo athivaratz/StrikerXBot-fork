@@ -44,6 +44,8 @@ async def _load() -> dict[str, Any]:
         "role_cmd": tree.get_command("role"),
         "memory": tree.get_command("memory"),
         "persona": tree.get_command("persona"),
+        "introduce": tree.get_command("introduce"),
+        "introduce_clear": tree.get_command("introduce-clear"),
         "extensions": set(bot.extensions),
     }
 
@@ -60,6 +62,8 @@ def test_setup_loads_ai_commands_and_syncs_once(monkeypatch) -> None:
         "ask",
         "clear",
         "help",
+        "introduce",
+        "introduce-clear",
         "memory",
         "pdf-to-image",
         "persona",
@@ -81,6 +85,8 @@ def test_setup_skips_ai_commands_without_a_key(monkeypatch) -> None:
     monkeypatch.setattr(main, "DEV_GUILD_ID", None)
     loaded = _run()
     assert loaded["names"] == ["clear", "help", "pdf-to-image", "role"]
+    assert "introduce" not in loaded["names"]
+    assert "introduce-clear" not in loaded["names"]
     assert loaded["memory"] is None
     assert loaded["persona"] is None
     assert loaded["order"] == [("sync", None)]
@@ -117,3 +123,9 @@ def _assert_access(loaded: dict[str, Any]) -> None:
     assert wipe is not None and wipe.guild_only is True
     assert set_cmd is not None and set_cmd.guild_only is True
     assert reset is not None and reset.guild_only is True
+    introduce = loaded["introduce"]
+    introduce_clear = loaded["introduce_clear"]
+    assert isinstance(introduce, app_commands.Command)
+    assert isinstance(introduce_clear, app_commands.Command)
+    assert introduce.guild_only is True
+    assert introduce_clear.guild_only is True

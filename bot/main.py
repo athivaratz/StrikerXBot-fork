@@ -26,6 +26,7 @@ BASE_COGS: tuple[str, ...] = (
 AI_COGS: tuple[str, ...] = (
     "bot.cogs.ai",
     "bot.cogs.memory",
+    "bot.cogs.introduce",
 )
 
 

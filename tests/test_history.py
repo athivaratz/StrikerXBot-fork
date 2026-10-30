@@ -86,3 +86,6 @@ def test_people_block_keeps_the_current_name():
     assert "- id 4: Ann" in block.splitlines()
     assert "Annie" not in block
     assert "- id 8: Bee" in block
+    named = people_block([older, other], 4, "Ann", {4: "Pim"})
+    assert "- id 4: Pim (display name Ann)" in named.splitlines()
+    assert "- id 8: Bee" in named.splitlines()

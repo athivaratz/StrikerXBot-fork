@@ -38,6 +38,7 @@ CHAT_RULES = (
     "Each user message starts with the speaker's name and Discord id, "
     'like "Ann (id 123): hello". '
     "Answer the person in the newest message. "
+    "Call people by the name shown in the people list. "
     "Earlier replies in this chat may use an older style. "
     "Always follow the persona above."
 )

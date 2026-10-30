@@ -20,7 +20,7 @@ from bot.ai.persona import CHAT_RULES, DEFAULT_PERSONA
 from bot.ai.provider import chat
 from bot.ai.rate_limit import RequestLimit, TokenBudget, gate
 from bot.ai.reasoning import reasoning_field
-from bot.ai.speakers import display_name, people_block
+from bot.ai.speakers import display_name, people_block, speaker_ids
 from bot.config import (
     AI_DAILY_TOKEN_BUDGET,
     AI_MAX_TOKENS,
@@ -55,14 +55,18 @@ def label_turn(speaker_name: str, user_id: int, text: str) -> str:
 
 
 def _system_prompt(
-    persona: str, turns: list[Turn], user_id: int, speaker_name: str
+    persona: str,
+    turns: list[Turn],
+    user_id: int,
+    speaker_name: str,
+    aliases: dict[int, str],
 ) -> str:
     """Rules sit under the persona so a custom voice cannot drop them."""
     if persona.endswith("\n"):
         head = persona
     else:
         head = f"{persona}\n"
-    people = people_block(turns, user_id, speaker_name)
+    people = people_block(turns, user_id, speaker_name, aliases)
     return f"{head}\n{CHAT_RULES}\n\n{people}"
 
 
@@ -100,15 +104,24 @@ async def _reply(
     if blocked is not None:
         return blocked
     turns = await load_context(channel_id)
+    aliases: dict[int, str] = {}
+    if guild_id is not None:
+        aliases = await current_store().get_aliases(
+            guild_id, speaker_ids(turns, user_id)
+        )
     persona = await _persona(guild_id)
     messages: list[dict[str, str]] = [
         {
             "role": "system",
-            "content": _system_prompt(persona, turns, user_id, speaker_name),
+            "content": _system_prompt(
+                persona, turns, user_id, speaker_name, aliases
+            ),
         }
     ]
     messages.extend(turns_to_messages(turns))
-    user_line = label_turn(speaker_name, user_id, text)
+    # The label and the stored line share one name, so history matches the people list.
+    label_name = aliases.get(user_id, speaker_name)
+    user_line = label_turn(label_name, user_id, text)
     messages.append({"role": "user", "content": user_line})
     async with aiohttp.ClientSession() as session:
         reply = await chat(
