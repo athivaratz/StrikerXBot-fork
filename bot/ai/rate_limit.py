@@ -1,10 +1,14 @@
 """Per-user request cap and daily token budget.
 
-Why in memory: this phase has no database, and both limits clear on restart.
+Request counts stay in memory and clear on restart. Token totals live in
+SQLite so a restart does not reset the day. The day is a date at a fixed
+UTC+7 offset.
 """
 
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+
+from bot.storage import Store
 
 # Fixed offset. zoneinfo needs the tzdata package on Windows, which we do not install.
 UTC_PLUS_7 = timezone(timedelta(hours=7))
@@ -39,37 +43,35 @@ class RequestLimit:
 class TokenBudget:
     """Counts tokens per user until the next midnight at UTC+7."""
 
-    def __init__(self, daily_limit: int, now: Callable[[], datetime]) -> None:
+    def __init__(
+        self, daily_limit: int, now: Callable[[], datetime], store: Store
+    ) -> None:
         self.daily_limit = daily_limit
         self._now = now
-        self._used: dict[int, tuple[object, int]] = {}
+        self._store = store
 
-    def _today(self):
+    def bind(self, store: Store) -> None:
+        self._store = store
+
+    def _day(self) -> str:
         current = self._now()
         if current.tzinfo is None:
             current = current.replace(tzinfo=timezone.utc)
-        return current.astimezone(UTC_PLUS_7).date()
+        return current.astimezone(UTC_PLUS_7).date().isoformat()
 
-    def used(self, user_id: int) -> int:
-        day, amount = self._used.get(user_id, (None, 0))
-        if day != self._today():
-            return 0
-        return amount
+    async def used(self, user_id: int) -> int:
+        return await self._store.get_tokens(user_id, self._day())
 
-    def allow(self, user_id: int) -> bool:
-        return self.used(user_id) < self.daily_limit
+    async def allow(self, user_id: int) -> bool:
+        return await self.used(user_id) < self.daily_limit
 
-    def add(self, user_id: int, tokens: int) -> None:
+    async def add(self, user_id: int, tokens: int) -> None:
         if tokens < 0:
             tokens = 0
-        day = self._today()
-        stored_day, amount = self._used.get(user_id, (None, 0))
-        if stored_day != day:
-            amount = 0
-        self._used[user_id] = (day, amount + tokens)
+        await self._store.add_tokens(user_id, self._day(), tokens)
 
 
-def gate(
+async def gate(
     user_id: int,
     owners: frozenset[int],
     limiter: RequestLimit,
@@ -80,6 +82,6 @@ def gate(
         return None
     if not limiter.allow(user_id):
         return RATE_MESSAGE
-    if not budget.allow(user_id):
+    if not await budget.allow(user_id):
         return BUDGET_MESSAGE
     return None

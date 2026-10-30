@@ -3,13 +3,19 @@
 Why one function: the cog should not know the order of those checks.
 """
 
-import asyncio
 import time
-from collections import OrderedDict
 from datetime import datetime, timezone
 
 import aiohttp
 
+from bot.ai.history import (
+    bind_store,
+    clear_history as clear_history,
+    current_store,
+    load_context,
+    lock_for,
+    record_turn,
+)
 from bot.ai.persona import DEFAULT_PERSONA
 from bot.ai.provider import chat
 from bot.ai.rate_limit import RequestLimit, TokenBudget, gate
@@ -17,25 +23,26 @@ from bot.config import (
     AI_DAILY_TOKEN_BUDGET,
     AI_MODEL,
     AI_REQUESTS_PER_MINUTE,
+    BOT_DB_PATH,
     OPENROUTER_API_KEY,
     OWNER_IDS,
 )
+from bot.storage import Store
 
-MAX_TURNS = 10
-MAX_CHANNELS = 200
-
-_history: OrderedDict[int, list[tuple[str, str]]] = OrderedDict()
-_locks: dict[int, asyncio.Lock] = {}
-_registry = asyncio.Lock()
-
+_db = Store(BOT_DB_PATH)
+bind_store(_db)
 limiter = RequestLimit(AI_REQUESTS_PER_MINUTE, time.monotonic)
-budget = TokenBudget(AI_DAILY_TOKEN_BUDGET, lambda: datetime.now(timezone.utc))
+budget = TokenBudget(
+    AI_DAILY_TOKEN_BUDGET,
+    lambda: datetime.now(timezone.utc),
+    _db,
+)
 
 
-def clear_history() -> None:
-    """Tests share one process, so they need a way to empty the map."""
-    _history.clear()
-    _locks.clear()
+def use_store(store: Store) -> None:
+    """Point history and the token budget at one database. Tests use this."""
+    bind_store(store)
+    budget.bind(store)
 
 
 def label_turn(speaker_name: str, text: str) -> str:
@@ -45,51 +52,43 @@ def label_turn(speaker_name: str, text: str) -> str:
     return f"{name}: {text}"
 
 
-def remember(channel_id: int, user_line: str, assistant_text: str) -> None:
-    """Keep the last 10 turns, and drop the oldest channel past the cap."""
-    turns = _history.get(channel_id)
-    if turns is None:
-        turns = []
-        _history[channel_id] = turns
-    turns.append(("user", user_line))
-    turns.append(("assistant", assistant_text))
-    overflow = len(turns) - (MAX_TURNS * 2)
-    if overflow > 0:
-        del turns[:overflow]
-    _history.move_to_end(channel_id)
-    while len(_history) > MAX_CHANNELS:
-        old_id, _ = _history.popitem(last=False)
-        _locks.pop(old_id, None)
-
-
-async def _lock_for(channel_id: int) -> asyncio.Lock:
-    async with _registry:
-        lock = _locks.get(channel_id)
-        if lock is None:
-            lock = asyncio.Lock()
-            _locks[channel_id] = lock
-        return lock
+async def _persona(guild_id: int | None) -> str:
+    if guild_id is None:
+        return DEFAULT_PERSONA
+    custom = await current_store().get_persona(guild_id)
+    if custom is None:
+        return DEFAULT_PERSONA
+    return custom
 
 
 async def run_chat(
-    user_id: int, channel_id: int, speaker_name: str, text: str
+    user_id: int,
+    channel_id: int,
+    speaker_name: str,
+    text: str,
+    *,
+    guild_id: int | None = None,
 ) -> str:
     """Hold the channel lock for the whole call, including the HTTP wait."""
-    lock = await _lock_for(channel_id)
+    lock = await lock_for(channel_id)
     async with lock:
-        return await _reply(user_id, channel_id, speaker_name, text)
+        return await _reply(user_id, channel_id, speaker_name, text, guild_id)
 
 
 async def _reply(
-    user_id: int, channel_id: int, speaker_name: str, text: str
+    user_id: int,
+    channel_id: int,
+    speaker_name: str,
+    text: str,
+    guild_id: int | None,
 ) -> str:
-    blocked = gate(user_id, OWNER_IDS, limiter, budget)
+    blocked = await gate(user_id, OWNER_IDS, limiter, budget)
     if blocked is not None:
         return blocked
     messages: list[dict[str, str]] = [
-        {"role": "system", "content": DEFAULT_PERSONA}
+        {"role": "system", "content": await _persona(guild_id)}
     ]
-    for role, content in _history.get(channel_id, []):
+    for role, content in await load_context(channel_id):
         messages.append({"role": role, "content": content})
     user_line = label_turn(speaker_name, text)
     messages.append({"role": "user", "content": user_line})
@@ -100,6 +99,13 @@ async def _reply(
             session=session,
             api_key=OPENROUTER_API_KEY,
         )
-    remember(channel_id, user_line, reply.text)
-    budget.add(user_id, reply.prompt_tokens + reply.completion_tokens)
+    await record_turn(
+        channel_id,
+        guild_id,
+        user_id,
+        speaker_name,
+        user_line,
+        reply.text,
+    )
+    await budget.add(user_id, reply.prompt_tokens + reply.completion_tokens)
     return reply.text
