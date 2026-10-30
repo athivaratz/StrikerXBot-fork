@@ -146,15 +146,23 @@ OPENROUTER_API_KEY is not set. AI chat will not load.
 
 `bot.cogs.ai` and `bot.cogs.memory` load only when that key is set.
 
+`bot.cogs.help`, `bot.cogs.moderation`, and `bot.cogs.pdf` load on every startup.
+
 Start the bot with:
 
 ```
 python run.py
 ```
 
-Slash commands are synced for all servers after those cogs load.
+Startup syncs slash commands after those cogs load.
+
+Set `DEV_GUILD_ID` to a server id to copy the commands to that server.
+
+With `DEV_GUILD_ID` empty, the sync is global.
 
 Discord may take time to show a new global slash command.
+
+See `docs/commands.md`.
 
 ## Change the model
 

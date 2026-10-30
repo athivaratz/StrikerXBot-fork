@@ -1,6 +1,6 @@
 # StrikerX_Bot_Discord
 
-Discord bot for one server. It answers prefix commands, assigns a role when a member joins, creates a private category and text channel for each non-bot member, and opens a temporary voice room and text channel when someone joins the privacy voice channel. `-pdf-to-image` renders one page of an attached PDF as a PNG.
+Discord bot for one server. It answers slash commands, assigns a role when a member joins, creates a private category and text channel for each non-bot member, and opens a temporary voice room and text channel when someone joins the privacy voice channel. `/pdf-to-image` renders one page of an attached PDF as a PNG.
 
 A Flask app listens on port 8000. `GET /` returns `Server is running!`.
 
@@ -40,7 +40,7 @@ The file is `BOT_DB_PATH` (default `data/bot.db`). Turns are kept for `AI_HISTOR
 
 `/persona show`, `/persona set`, and `/persona reset` read or change the server persona. Set and reset require Manage Server.
 
-The other settings are `AI_MODEL`, `AI_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET`, `AI_HISTORY_DAYS`, `BOT_DB_PATH`, and `OWNER_IDS`. They load the same way `TOKEN` does.
+The other settings are `AI_MODEL`, `AI_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET`, `AI_HISTORY_DAYS`, `BOT_DB_PATH`, `OWNER_IDS`, and `DEV_GUILD_ID`. They load the same way `TOKEN` does.
 
 When the key is empty, startup prints that AI chat will not load.
 
@@ -48,10 +48,8 @@ See `docs/ai-chat.md`.
 
 ## Commands
 
-- `-bye`
-- `-hello`
-- `-help`
-- `-today`
-- `-clear`
-- `-role`
-- `-pdf-to-image`
+Slash commands are listed in `docs/commands.md`.
+
+Set `DEV_GUILD_ID` to a server id to copy those commands to that server at startup.
+
+An empty `DEV_GUILD_ID` syncs them globally.
