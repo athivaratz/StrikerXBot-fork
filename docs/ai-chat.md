@@ -2,12 +2,16 @@
 
 `/ask` and a message that mentions the bot both go through the same chat path. The path calls OpenRouter's OpenAI-compatible chat endpoint.
 
+User messages sent to the AI are stored in the local SQLite file and sent to OpenRouter.
+
 ```mermaid
 flowchart LR
   ask["/ask or mention"] --> cog[AICog]
   cog --> chat[run_chat]
   chat --> limits[rate and budget]
   chat --> history[channel history]
+  history --> sqlite[SQLite]
+  limits --> sqlite
   chat --> provider[provider.chat]
   provider --> openrouter[OpenRouter]
   cog --> chunker[chunker]
@@ -18,31 +22,99 @@ flowchart LR
 
 `bot/ai/provider.py` posts the messages and reads the reply text plus token counts.
 
-A 429 or a 5xx status is tried again twice. A timeout, a connection error, or any other status stops after one try.
+A 429 or a 5xx status is tried again twice.
+
+A timeout, a connection error, or any other status stops after one try.
 
 The error shown in Discord is a short sentence.
 
-`bot/ai/persona.py` holds `DEFAULT_PERSONA`, the system prompt sent with every request.
+`bot/ai/persona.py` holds `DEFAULT_PERSONA`. That string is the system prompt when a server has no saved persona.
 
-`bot/ai/rate_limit.py` keeps a per-user request count and a per-user token total in memory.
+`bot/ai/rate_limit.py` keeps a per-user request count in memory.
+
+The daily token total is a row in SQLite.
 
 The default request cap is 10 per minute. Set `AI_REQUESTS_PER_MINUTE` to change it.
 
-The daily token budget defaults to 20000. The day resets at midnight UTC+7, using a fixed offset of 7 hours.
+The daily token budget defaults to 20000.
+
+The day resets at midnight UTC+7, using a fixed offset of 7 hours.
 
 User ids in `OWNER_IDS` skip both checks.
 
+Token counts are not purged in this phase.
+
 `bot/ai/chunker.py` splits a reply longer than 2000 characters. It prefers a blank line, then a single line break. A code fence stays in one message when the fence fits.
 
-`bot/ai/chat.py` remembers the last 10 turns for each channel. A turn is one user message and one assistant reply.
+`bot/ai/chat.py` saves one row for each reply. The row stores the labeled user line (`Name: text`) and the assistant reply.
 
-Each user turn is stored as `Name: text`.
+The next request sends the last 10 rows for that channel, oldest first.
 
-The map keeps 200 channels and drops the oldest. The map is empty again when the process stops.
+Rows older than `AI_HISTORY_DAYS` are left out of the request. The default is 7 days.
+
+A write deletes expired rows, and that delete runs at most once an hour.
+
+`bot/storage.py` opens the SQLite file at `BOT_DB_PATH`. The default is `data/bot.db` in the project root.
+
+`data/` is listed in `.gitignore`.
+
+A turn stores the speaker display name, the user id, the channel id, the guild id, the user message, the AI reply, and a timestamp.
+
+A DM has no guild id.
+
+The same file stores daily token counts and each server's persona text.
 
 `bot/cogs/ai.py` is the Discord cog. It shows typing while it waits.
 
 Outgoing messages pass `allowed_mentions` set to none. Echoed `@everyone`, role, and user text is sent as plain text.
+
+## Your stored turns
+
+`/memory view` replies with how many of your turns are stored in this channel, plus your last 3 messages there.
+
+```
+/memory view
+```
+
+`/memory clear` deletes only your turns. The `scope` choice is `channel` or `everywhere`. `channel` is the default.
+
+```
+/memory clear
+```
+
+`/memory wipe-channel` deletes every stored turn in this channel. It runs in a server and requires the Manage Messages permission.
+
+```
+/memory wipe-channel
+```
+
+These replies are visible only to the person who ran the command.
+
+## Persona
+
+`/persona show` replies with the persona for this server, and says whether it is the default or a custom one. It runs in a server.
+
+A long persona is cut after 300 characters in that reply.
+
+```
+/persona show
+```
+
+`/persona set` stores a custom system prompt for this server. It requires the Manage Server permission.
+
+Empty text is rejected. Text longer than 1500 characters is rejected.
+
+```
+/persona set
+```
+
+`/persona reset` deletes the saved persona for this server. Later replies use `DEFAULT_PERSONA`. It requires the Manage Server permission.
+
+```
+/persona reset
+```
+
+Edit `DEFAULT_PERSONA` in `bot/ai/persona.py`, then restart the bot, to change the fallback text.
 
 ## Configure
 
@@ -53,16 +125,26 @@ OPENROUTER_API_KEY=
 AI_MODEL=deepseek/deepseek-v4.1-flash
 AI_REQUESTS_PER_MINUTE=10
 AI_DAILY_TOKEN_BUDGET=20000
+AI_HISTORY_DAYS=7
+BOT_DB_PATH=
 OWNER_IDS=
 ```
 
 `OWNER_IDS` is a comma-separated list of Discord user ids.
 
-When `OPENROUTER_API_KEY` is empty, startup prints this line and continues without the cog:
+`AI_HISTORY_DAYS` is how many days of turns stay in the file. The default is 7.
+
+`BOT_DB_PATH` is the SQLite file. An empty value uses `data/bot.db`.
+
+A relative path starts at the project root.
+
+When `OPENROUTER_API_KEY` is empty, startup prints this line and continues without the AI cogs:
 
 ```
 OPENROUTER_API_KEY is not set. AI chat will not load.
 ```
+
+`bot.cogs.ai` and `bot.cogs.memory` load only when that key is set.
 
 Start the bot with:
 
@@ -70,12 +152,10 @@ Start the bot with:
 python run.py
 ```
 
-Slash commands are synced for all servers when the cog loads.
+Slash commands are synced for all servers after those cogs load.
 
 Discord may take time to show a new global slash command.
 
-## Change the voice or the model
-
-Edit `DEFAULT_PERSONA` in `bot/ai/persona.py`, then restart the bot.
+## Change the model
 
 Set `AI_MODEL` to another OpenRouter model id. The default is `deepseek/deepseek-v4.1-flash`.
