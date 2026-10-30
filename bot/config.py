@@ -21,6 +21,17 @@ _load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 TOKEN = os.getenv("TOKEN")
 
 # A bad value should not stop the rest of the bot from starting.
+def _optional_int(name: str) -> int | None:
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return None
+    try:
+        return int(raw)
+    except ValueError:
+        print(f"{name} is not an integer. Ignoring it.")
+        return None
+
+
 def _positive_int(name: str, default: int) -> int:
     raw = os.getenv(name)
     if raw is None or not raw.strip():
@@ -68,6 +79,7 @@ AI_REQUESTS_PER_MINUTE = _positive_int("AI_REQUESTS_PER_MINUTE", 10)
 AI_HISTORY_DAYS = _positive_int("AI_HISTORY_DAYS", 7)
 BOT_DB_PATH = _db_path()
 OWNER_IDS = _owner_ids()
+DEV_GUILD_ID = _optional_int("DEV_GUILD_ID")
 
 PRIVACY_VOICE_CHANNEL_ID = 1564979389345562756
 OVERWRITE_ROLE_ID_1 = 1564494306792964097

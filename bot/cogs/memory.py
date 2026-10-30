@@ -17,10 +17,10 @@ from bot.ai.memory_tools import (
     format_persona_show,
     format_view,
     format_wiped,
-    report_command_error,
     wipe_channel,
 )
 from bot.ai.persona import PersonaError, validate_persona
+from bot.utils.command_errors import report_command_error
 from bot.utils.discord_send import send_ephemeral
 
 _NEEDS_CHANNEL = "This command needs a channel."

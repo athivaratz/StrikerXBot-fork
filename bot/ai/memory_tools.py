@@ -3,13 +3,9 @@
 The cog stays thin, and tests can call these without Discord.
 """
 
-import discord
-from discord import app_commands
-
 from bot.ai.chat import label_turn
 from bot.ai.persona import DEFAULT_PERSONA
 from bot.storage import Store, Turn
-from bot.utils.discord_send import send_ephemeral
 
 _PREVIEW = 300
 _SNIPPET = 100
@@ -58,13 +54,6 @@ def format_persona_show(custom: str | None) -> str:
     return f"{kind}\n{shorten(body, _PREVIEW)}"
 
 
-def permission_label(name: str) -> str:
-    # Discord calls this flag Manage Server. The API name is manage_guild.
-    if name == "manage_guild":
-        return "Manage Server"
-    return name.replace("_", " ").title()
-
-
 async def delete_own_turns(
     store: Store, user_id: int, channel_id: int, scope: str
 ) -> int:
@@ -75,25 +64,3 @@ async def delete_own_turns(
 
 async def wipe_channel(store: Store, channel_id: int) -> int:
     return await store.delete_channel_turns(channel_id)
-
-
-async def report_command_error(
-    interaction: discord.Interaction,
-    error: app_commands.AppCommandError,
-) -> None:
-    """Map permission and DM failures to one-line replies."""
-    cause: BaseException = error
-    if isinstance(error, app_commands.CommandInvokeError):
-        cause = error.original
-    if isinstance(cause, app_commands.MissingPermissions):
-        names = ", ".join(permission_label(name) for name in cause.missing_permissions)
-        await send_ephemeral(
-            interaction,
-            f"You need the {names} permission to use this command.",
-        )
-        return
-    if isinstance(cause, app_commands.NoPrivateMessage):
-        await send_ephemeral(interaction, "This command only works in a server.")
-        return
-    print(type(cause).__name__)
-    await send_ephemeral(interaction, "Something went wrong with that command.")

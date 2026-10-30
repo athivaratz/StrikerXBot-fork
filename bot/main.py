@@ -5,6 +5,7 @@ import io
 from datetime import date
 from discord.ext import commands
 from bot.config import (
+    DEV_GUILD_ID,
     JOIN_ROLE_ID,
     OPENROUTER_API_KEY,
     OVERWRITE_ROLE_ID_1,
@@ -20,17 +21,40 @@ intents.members = True
 intents.guilds = True
 
 
+# AI cogs stay in their own list so a missing key can skip them without skipping sync.
+BASE_COGS: tuple[str, ...] = (
+    "bot.cogs.help",
+    "bot.cogs.moderation",
+    "bot.cogs.pdf",
+)
+AI_COGS: tuple[str, ...] = (
+    "bot.cogs.ai",
+    "bot.cogs.memory",
+)
+
+
 class StrikerXBot(commands.Bot):
     async def setup_hook(self) -> None:
-        # The gateway is not connected yet, so a missing key can skip the cog
-        # without taking the rest of the bot down.
-        if not OPENROUTER_API_KEY:
+        for name in BASE_COGS:
+            await self.load_extension(name)
+        if OPENROUTER_API_KEY:
+            for name in AI_COGS:
+                await self.load_extension(name)
+        else:
             print("OPENROUTER_API_KEY is not set. AI chat will not load.")
-            return
-        await self.load_extension("bot.cogs.ai")
-        await self.load_extension("bot.cogs.memory")
+        await self._sync_commands()
+
+    async def _sync_commands(self) -> None:
         try:
-            await self.tree.sync()
+            if DEV_GUILD_ID is None:
+                synced = await self.tree.sync()
+                print(f"Synced {len(synced)} slash commands globally.")
+                return
+            # A guild sync shows new commands immediately. Global sync can take time.
+            guild = discord.Object(id=DEV_GUILD_ID)
+            self.tree.copy_global_to(guild=guild)
+            synced = await self.tree.sync(guild=guild)
+            print(f"Synced {len(synced)} slash commands to guild {DEV_GUILD_ID}.")
         except discord.HTTPException as err:
             print(f"Slash command sync failed with status {err.status}.")
 
