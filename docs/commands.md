@@ -8,8 +8,6 @@ With `DEV_GUILD_ID` empty, startup syncs the commands globally.
 
 Discord can take time to show a new global command.
 
-The bot needs permission to send messages in the channel.
-
 Extra permissions are named on the command that needs them.
 
 An ephemeral reply is visible only to the person who ran the command.

@@ -20,7 +20,7 @@ _load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 TOKEN = os.getenv("TOKEN")
 
-# A bad value should not stop the rest of the bot from starting.
+# A bad value in these helpers should not stop the rest of the bot from starting.
 def _optional_int(name: str) -> int | None:
     raw = os.getenv(name)
     if raw is None or not raw.strip():
