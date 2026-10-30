@@ -1,6 +1,7 @@
 """Open a SQLite file and insert one chat turn.
 
 Connections are opened by the caller and are not shared across threads.
+WAL and the table script are separate so a Store can run them once.
 """
 
 import sqlite3
@@ -49,13 +50,16 @@ class Turn:
     created_at: float
 
 
-def connect(path: Path) -> sqlite3.Connection:
+def open_connection(path: Path) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
+    return conn
+
+
+def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(_SCHEMA)
-    return conn
 
 
 def turn_from_row(row: sqlite3.Row) -> Turn:

@@ -6,13 +6,14 @@ are tied to the thread that created them, so they are closed before return.
 
 import asyncio
 import sqlite3
+import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import TypeVar
 
 from bot import storage_meta as meta
 from bot import storage_turns as turns
-from bot.storage_sql import Turn, connect, insert_turn
+from bot.storage_sql import Turn, ensure_schema, insert_turn, open_connection
 
 T = TypeVar("T")
 
@@ -22,10 +23,23 @@ __all__ = ["Store", "Turn"]
 class Store:
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
+        self._ready = False
+        # _call runs in worker threads, so the first setup must be serialized.
+        self._lock = threading.Lock()
+
+    def _prepare(self, conn: sqlite3.Connection) -> None:
+        if self._ready:
+            return
+        with self._lock:
+            if self._ready:
+                return
+            ensure_schema(conn)
+            self._ready = True
 
     def _call(self, fn: Callable[[sqlite3.Connection], T]) -> T:
-        conn = connect(self.path)
+        conn = open_connection(self.path)
         try:
+            self._prepare(conn)
             result = fn(conn)
             conn.commit()
             return result
