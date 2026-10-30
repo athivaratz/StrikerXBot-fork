@@ -3,6 +3,8 @@
 Permission failures should name the permission instead of dumping a traceback.
 """
 
+import math
+
 import discord
 from discord import app_commands
 
@@ -20,7 +22,7 @@ async def report_command_error(
     interaction: discord.Interaction,
     error: app_commands.AppCommandError,
 ) -> None:
-    """Map permission and DM failures to one-line replies."""
+    """Map permission, cooldown, and DM failures to one-line replies."""
     cause: BaseException = error
     if isinstance(error, app_commands.CommandInvokeError):
         cause = error.original
@@ -40,6 +42,11 @@ async def report_command_error(
         return
     if isinstance(cause, app_commands.NoPrivateMessage):
         await send_ephemeral(interaction, "This command only works in a server.")
+        return
+    if isinstance(cause, app_commands.CommandOnCooldown):
+        # retry_after is a fraction. Round up so the reply never says 0 while still waiting.
+        wait = math.ceil(cause.retry_after)
+        await send_ephemeral(interaction, f"Try again in {wait} seconds.")
         return
     print(type(cause).__name__)
     await send_ephemeral(interaction, "Something went wrong with that command.")

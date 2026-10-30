@@ -68,6 +68,7 @@ def test_setup_loads_ai_commands_and_syncs_once(monkeypatch) -> None:
         "pdf-to-image",
         "persona",
         "role",
+        "status",
     ]
     assert loaded["role"] == ["add", "remove", "replace"]
     memory = loaded["memory"]
@@ -84,7 +85,7 @@ def test_setup_skips_ai_commands_without_a_key(monkeypatch) -> None:
     monkeypatch.setattr(main, "OPENROUTER_API_KEY", "")
     monkeypatch.setattr(main, "DEV_GUILD_ID", None)
     loaded = _run()
-    assert loaded["names"] == ["clear", "help", "pdf-to-image", "role"]
+    assert loaded["names"] == ["clear", "help", "pdf-to-image", "role", "status"]
     assert "introduce" not in loaded["names"]
     assert "introduce-clear" not in loaded["names"]
     assert loaded["memory"] is None
