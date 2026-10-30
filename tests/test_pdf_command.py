@@ -84,7 +84,7 @@ def test_unexpected_error_stays_private(capsys: pytest.CaptureFixture[str]) -> N
     _run(interaction, FakeFile("notes.pdf"), render)
     call = _private(interaction)
     assert call["args"] == ("Something went wrong while rendering that page.",)
-    assert capsys.readouterr().out == "RuntimeError\n"
+    assert capsys.readouterr().out == "/pdf-to-image failed: RuntimeError\n"
 
 
 def test_delete_failure_sends_nothing(capsys: pytest.CaptureFixture[str]) -> None:
@@ -92,7 +92,19 @@ def test_delete_failure_sends_nothing(capsys: pytest.CaptureFixture[str]) -> Non
     _run(interaction, FakeFile("notes.pdf", fail_read=True))
     assert interaction.followup.calls == []
     assert interaction.response.events == ["defer", "delete"]
-    assert capsys.readouterr().out == "403\n"
+    assert capsys.readouterr().out == (
+        "/pdf-to-image could not remove the thinking message (status 403)\n"
+    )
+
+
+def test_private_followup_failure_is_logged(capsys: pytest.CaptureFixture[str]) -> None:
+    interaction = FakeInteraction(fail_private_followup=True)
+    _run(interaction, FakeFile("notes.pdf", fail_read=True))
+    assert interaction.followup.calls == []
+    assert interaction.response.events == ["defer", "delete", "followup"]
+    assert capsys.readouterr().out == (
+        "/pdf-to-image private error reply failed (status 400)\n"
+    )
 
 
 def test_upload_failure_sends_a_private_size_message() -> None:

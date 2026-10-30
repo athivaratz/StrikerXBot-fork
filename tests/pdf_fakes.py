@@ -31,23 +31,43 @@ class FakeResponse:
 
 
 class FakeFollowup:
-    def __init__(self, events: list[str], *, fail_upload: bool) -> None:
+    def __init__(
+        self,
+        events: list[str],
+        *,
+        fail_upload: bool,
+        fail_private_followup: bool,
+    ) -> None:
         self.events = events
         self.fail_upload = fail_upload
+        self.fail_private_followup = fail_private_followup
         self.calls: list[dict[str, object]] = []
 
     async def send(self, *args: object, **kwargs: object) -> None:
         if self.fail_upload and "file" in kwargs:
             self.events.append("upload")
             raise http_error(413)
+        if self.fail_private_followup and kwargs.get("ephemeral") is True:
+            self.events.append("followup")
+            raise http_error(400)
         self.events.append("followup")
         self.calls.append({"args": args, **kwargs})
 
 
 class FakeInteraction:
-    def __init__(self, *, fail_delete: bool = False, fail_upload: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        fail_delete: bool = False,
+        fail_upload: bool = False,
+        fail_private_followup: bool = False,
+    ) -> None:
         self.response = FakeResponse()
-        self.followup = FakeFollowup(self.response.events, fail_upload=fail_upload)
+        self.followup = FakeFollowup(
+            self.response.events,
+            fail_upload=fail_upload,
+            fail_private_followup=fail_private_followup,
+        )
         self.fail_delete = fail_delete
 
     async def delete_original_response(self) -> None:

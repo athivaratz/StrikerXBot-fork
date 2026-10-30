@@ -25,7 +25,7 @@ async def _send_private_error(interaction: discord.Interaction, text: str) -> No
     try:
         await interaction.delete_original_response()
     except discord.HTTPException as err:
-        print(err.status)
+        print(f"/pdf-to-image could not remove the thinking message (status {err.status})")
         return
     try:
         await interaction.followup.send(
@@ -34,7 +34,7 @@ async def _send_private_error(interaction: discord.Interaction, text: str) -> No
             allowed_mentions=NO_MENTIONS,
         )
     except discord.HTTPException as err:
-        print(err.status)
+        print(f"/pdf-to-image private error reply failed (status {err.status})")
 
 
 async def run_pdf_command(
@@ -67,5 +67,5 @@ async def run_pdf_command(
         await _send_private_error(interaction, str(err))
     except Exception as err:
         # The type name is enough. The message can contain file details.
-        print(type(err).__name__)
+        print(f"/pdf-to-image failed: {type(err).__name__}")
         await _send_private_error(interaction, _RENDER_FAILED)
