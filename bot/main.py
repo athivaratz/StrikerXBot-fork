@@ -22,10 +22,12 @@ BASE_COGS: tuple[str, ...] = (
     "bot.cogs.help",
     "bot.cogs.moderation",
     "bot.cogs.pdf",
+    "bot.cogs.status",
 )
 AI_COGS: tuple[str, ...] = (
     "bot.cogs.ai",
     "bot.cogs.memory",
+    "bot.cogs.introduce",
 )
 
 

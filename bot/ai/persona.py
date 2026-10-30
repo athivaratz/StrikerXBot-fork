@@ -1,6 +1,7 @@
 """Default system prompt, and the check for a custom guild persona.
 
 Why a constant: the bot's voice is one string a beginner can edit.
+CHAT_RULES stays on every prompt so a custom persona cannot drop speaker labels.
 A custom persona is rejected here so the database never stores a blank or huge prompt.
 """
 
@@ -32,3 +33,12 @@ DEFAULT_PERSONA = """คุณคือบอททดสอบระบบข�
 ข้อความใน Discord ยาวได้ไม่เกิน 2,000 ตัวอักษร ถ้าเนื้อหายาว ให้สรุปสั้น ๆ ก่อนแล้วถามว่าต้องการรายละเอียดส่วนไหน
 ใช้ตัวหนา หัวข้อ และอีโมจิให้น้อย ใช้รายการเมื่อมีหลายข้อที่แยกจากกันชัดเจนเท่านั้น
 """
+
+CHAT_RULES = (
+    "Each user message starts with the speaker's name and Discord id, "
+    'like "Ann (id 123): hello". '
+    "Answer the person in the newest message. "
+    "Call people by the name shown in the people list. "
+    "Earlier replies in this chat may use an older style. "
+    "Always follow the persona above."
+)

@@ -7,10 +7,29 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+from bot.ai.alias import add_reminder
 from bot.ai.chat import run_chat
 from bot.ai.chunker import split_for_discord
+from bot.ai.history import current_store
+from bot.ai.message_text import name_mentions, strip_bot_mention, with_reply_context
 from bot.ai.provider import AIError, NO_ANSWER
 from bot.utils.discord_send import send_text
+
+
+def _text_for_model(message: discord.Message, bot_id: int) -> str:
+    """Mentions and a Discord reply are ids until they are written out."""
+    text = strip_bot_mention(message.content, bot_id)
+    if text == "":
+        return ""
+    people = [(user.id, user.display_name) for user in message.mentions]
+    text = name_mentions(text, people)
+    reference = message.reference
+    if reference is None or not isinstance(reference.resolved, discord.Message):
+        return text
+    replied = reference.resolved
+    return with_reply_context(
+        text, replied.author.display_name, replied.author.id, replied.content
+    )
 
 
 def _chunks(reply: str) -> list[str]:
@@ -18,6 +37,18 @@ def _chunks(reply: str) -> list[str]:
     if parts:
         return parts
     return [NO_ANSWER]
+
+
+async def _with_intro(
+    chunks: list[str], guild_id: int | None, user_id: int
+) -> list[str]:
+    """Added at send time so the line is never written into stored history."""
+    if guild_id is None:
+        return chunks
+    saved = await current_store().get_alias(guild_id, user_id)
+    if saved is not None:
+        return chunks
+    return add_reminder(chunks)
 
 
 class AICog(commands.Cog):
@@ -39,7 +70,10 @@ class AICog(commands.Cog):
             interaction.channel,
             interaction.guild_id,
         )
-        for chunk in _chunks(reply):
+        chunks = await _with_intro(
+            _chunks(reply), interaction.guild_id, interaction.user.id
+        )
+        for chunk in chunks:
             await send_text(interaction.followup.send, chunk)
 
     @commands.Cog.listener()
@@ -48,8 +82,7 @@ class AICog(commands.Cog):
             return
         if self.bot.user is None or self.bot.user not in message.mentions:
             return
-        text = message.content.replace(f"<@{self.bot.user.id}>", "")
-        text = text.replace(f"<@!{self.bot.user.id}>", "").strip()
+        text = _text_for_model(message, self.bot.user.id)
         if text == "":
             return
         guild_id = None
@@ -63,7 +96,7 @@ class AICog(commands.Cog):
             message.channel,
             guild_id,
         )
-        chunks = _chunks(reply)
+        chunks = await _with_intro(_chunks(reply), guild_id, message.author.id)
         await send_text(message.reply, chunks[0])
         for chunk in chunks[1:]:
             await send_text(message.channel.send, chunk)

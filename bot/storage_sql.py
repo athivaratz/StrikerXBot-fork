@@ -35,6 +35,13 @@ CREATE TABLE IF NOT EXISTS guild_persona (
     updated_by INTEGER NOT NULL,
     updated_at REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS user_profiles (
+    guild_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    alias TEXT NOT NULL,
+    updated_at REAL NOT NULL,
+    PRIMARY KEY (guild_id, user_id)
+);
 """
 
 

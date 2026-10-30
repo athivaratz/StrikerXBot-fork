@@ -12,7 +12,7 @@ Extra permissions are named on the command that needs them.
 
 An ephemeral reply is visible only to the person who ran the command.
 
-`/ask`, `/memory`, and `/persona` are registered only when `OPENROUTER_API_KEY` is set.
+`/ask`, `/memory`, `/persona`, `/introduce`, and `/introduce-clear` are registered only when `OPENROUTER_API_KEY` is set.
 
 ## /help
 
@@ -24,6 +24,38 @@ The reply is ephemeral.
 
 ```
 /help
+```
+
+## /status
+
+`/status` shows bot and host status in one embed.
+
+The reply is public.
+
+The description lists the OS name, architecture, and kernel.
+
+The board name is a second line when the machine reports one.
+
+The fields cover latency, bot uptime, system uptime, CPU, memory, disk, Discord guild, user, and channel counts, the Python and discord.py versions, the process id, and the host timezone.
+
+Bot uptime and system uptime show a short duration, with the raw seconds underneath.
+
+CPU, memory, and disk include a usage bar.
+
+The embed colour is green, yellow, or red from the highest of those three.
+
+Latency is `n/a` until the bot has connected to Discord.
+
+The host user name is included when the caller's id is listed in `OWNER_IDS`.
+
+The hostname, IP addresses, file paths, environment values, and the token stay out of the reply.
+
+Each user can run it once every 15 seconds.
+
+A faster repeat gets an ephemeral reply with the wait, rounded up to whole seconds.
+
+```
+/status
 ```
 
 ## /clear
@@ -170,11 +202,15 @@ Replies are ephemeral.
 
 `/persona set` stores a custom persona. The user needs Manage Server.
 
+It clears this server's stored turns. Old replies are written in the previous voice, and the model copies that voice.
+
 Empty text is rejected.
 
 Text longer than 1500 characters is rejected.
 
 `/persona reset` removes the saved persona. The user needs Manage Server.
+
+When a saved persona is removed, it also clears this server's stored turns.
 
 Later replies use the default persona.
 
@@ -182,6 +218,52 @@ Later replies use the default persona.
 /persona show
 /persona set text: You are a helpful bot.
 /persona reset
+```
+
+## /introduce
+
+`/introduce` saves the name the bot uses for you in this server.
+
+It runs in a server.
+
+The reply is ephemeral.
+
+Spaces at the ends are removed. Repeated spaces become one space.
+
+The name must be 32 characters or fewer.
+
+`@`, `<`, `>`, a backtick, and a new line are rejected.
+
+A name that fails those checks gets an ephemeral reply with the reason.
+
+```
+/introduce name: Pim
+```
+
+A member with no saved name gets this line on each AI reply in the server:
+
+```
+-# You have not introduced yourself yet. Use /introduce to tell me what to call you.
+```
+
+The `-# ` prefix is Discord small text, so the line stays quiet.
+
+The line is added when the reply is sent, after the turn is already saved.
+
+## /introduce-clear
+
+`/introduce-clear` removes the name you saved in this server.
+
+It runs in a server.
+
+The reply is ephemeral.
+
+When a name was saved, the bot uses your display name again.
+
+When no name was saved, the reply says you have not set a name in this server.
+
+```
+/introduce-clear
 ```
 
 ## Changes from the prefix commands

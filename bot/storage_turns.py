@@ -89,6 +89,11 @@ def delete_channel_turns(conn: sqlite3.Connection, channel_id: int) -> int:
     return cursor.rowcount
 
 
+def delete_guild_turns(conn: sqlite3.Connection, guild_id: int) -> int:
+    cursor = conn.execute("DELETE FROM turns WHERE guild_id = ?", (guild_id,))
+    return cursor.rowcount
+
+
 def delete_all_turns(conn: sqlite3.Connection) -> int:
     cursor = conn.execute("DELETE FROM turns")
     return cursor.rowcount

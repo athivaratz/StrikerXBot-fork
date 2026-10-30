@@ -1,6 +1,7 @@
 import asyncio
 
 from bot.storage import Store
+from bot.storage_profiles import get_aliases
 
 
 def test_store_round_trip(tmp_path):
@@ -56,3 +57,52 @@ def test_store_round_trip(tmp_path):
     assert again is False
     assert tokens == 12
     assert empty == 0
+
+
+class _NoQuery:
+    def execute(self, sql: str, *_args: object) -> None:
+        raise AssertionError(sql)
+
+
+def test_aliases_are_stored_per_guild(tmp_path):
+    store = Store(tmp_path / "aliases.db")
+
+    async def run():
+        missing = await store.get_alias(1, 4)
+        await store.set_alias(1, 4, "Pim", 1.0)
+        saved = await store.get_alias(1, 4)
+        await store.set_alias(1, 4, "Pimmy", 2.0)
+        replaced = await store.get_alias(1, 4)
+        await store.set_alias(1, 8, "Bee", 3.0)
+        await store.set_alias(2, 4, "Ann", 4.0)
+        mixed = await store.get_aliases(1, [4, 8, 9])
+        other = await store.get_alias(2, 4)
+        empty = await store.get_aliases(1, [])
+        cleared = await store.clear_alias(1, 4)
+        gone = await store.get_alias(1, 4)
+        again = await store.clear_alias(1, 4)
+        return (
+            missing,
+            saved,
+            replaced,
+            mixed,
+            other,
+            empty,
+            cleared,
+            gone,
+            again,
+        )
+
+    missing, saved, replaced, mixed, other, empty, cleared, gone, again = asyncio.run(
+        run()
+    )
+    assert missing is None
+    assert saved == "Pim"
+    assert replaced == "Pimmy"
+    assert mixed == {4: "Pimmy", 8: "Bee"}
+    assert other == "Ann"
+    assert empty == {}
+    assert cleared is True
+    assert gone is None
+    assert again is False
+    assert get_aliases(_NoQuery(), 1, []) == {}  # type: ignore[arg-type]

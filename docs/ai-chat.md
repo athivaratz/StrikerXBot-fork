@@ -48,7 +48,7 @@ They also count toward the daily token budget, because the budget adds prompt an
 
 `low`, `medium`, and `high` send that effort.
 
-`bot/ai/persona.py` holds `DEFAULT_PERSONA`. That string is the system prompt when a server has no saved persona.
+`bot/ai/persona.py` holds `DEFAULT_PERSONA`. A server with no saved persona uses that text as its persona.
 
 `bot/ai/rate_limit.py` keeps a per-user request count in memory.
 
@@ -66,9 +66,39 @@ Token counts are not purged in this phase.
 
 `bot/ai/chunker.py` splits a reply longer than 2000 characters. It prefers a blank line, then a single line break. A code fence stays in one message when the fence fits.
 
-`bot/ai/chat.py` saves one row for each reply. The row stores the labeled user line (`Name: text`) and the assistant reply.
+`bot/ai/chat.py` saves one row for each reply. The stored user line is the same text as the label, for example `Pim (id 4): hi`. The assistant reply is stored as the model wrote it.
 
 The next request sends the last 10 rows for that channel, oldest first.
+
+The system prompt starts with the persona. Speaker rules come next. They tell the model that each user message starts with a name and Discord id, to answer the person in the newest message, to call people by the name in the people list, and to follow the persona when older replies use another style.
+
+In a server, one query loads saved names for the current user and for every user id in those rows.
+
+The label and the people list use a saved name when that member has one. The display name is used when no name is saved.
+
+A saved name is written as `- id 123: Pim (display name Ann)`. The part in parentheses is the display name.
+
+With no saved name, the line is `- id 123: Ann`.
+
+For someone already in the history, that display name is the newest one stored for their id.
+
+For the person speaking now, the display name comes from the message that just arrived.
+
+A direct message has no server, so the label uses the display name.
+
+After the reply is stored, a server reply for a member with no saved name adds this line:
+
+```
+-# You have not introduced yourself yet. Use /introduce to tell me what to call you.
+```
+
+The line is added for `/ask` and for mentions.
+
+The turn is stored before that line is added. Later prompts see only the stored turn.
+
+A mention of another user is sent as `@Ann (id 123)`.
+
+When the message is a reply and the referenced message is available, the text starts with `Replying to Ann (id 123): "snippet"`. The quote is cut after 200 characters.
 
 Rows older than `AI_HISTORY_DAYS` are left out of the request. The default is 7 days.
 
@@ -82,7 +112,7 @@ A turn stores the speaker display name, the user id, the channel id, the guild i
 
 A DM has no guild id.
 
-The same file stores daily token counts and each server's persona text.
+The same file stores daily token counts, each server's persona text, and the name each member picks with `/introduce`.
 
 `bot/cogs/ai.py` is the Discord cog. It shows typing while it waits.
 
@@ -122,13 +152,21 @@ A long persona is cut after 300 characters in that reply.
 
 `/persona set` stores a custom system prompt for this server. It requires the Manage Server permission.
 
+It deletes this server's stored turns. Old replies are written in the previous voice, and the model copies that voice.
+
 Empty text is rejected. Text longer than 1500 characters is rejected.
 
 ```
 /persona set text: You are a helpful bot.
 ```
 
-`/persona reset` deletes the saved persona for this server. Later replies use `DEFAULT_PERSONA`. It requires the Manage Server permission.
+`/persona reset` deletes the saved persona for this server. It requires the Manage Server permission.
+
+It then deletes this server's stored turns.
+
+Later replies use `DEFAULT_PERSONA`.
+
+When the server is already using the default persona, the stored turns stay.
 
 ```
 /persona reset
@@ -170,7 +208,7 @@ When `OPENROUTER_API_KEY` is empty, startup prints this line and continues witho
 OPENROUTER_API_KEY is not set. AI chat will not load.
 ```
 
-`bot.cogs.ai` and `bot.cogs.memory` load only when that key is set.
+`bot.cogs.ai`, `bot.cogs.memory`, and `bot.cogs.introduce` load only when that key is set.
 
 `bot.cogs.help`, `bot.cogs.moderation`, and `bot.cogs.pdf` load on every startup.
 

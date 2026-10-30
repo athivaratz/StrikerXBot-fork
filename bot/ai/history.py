@@ -10,7 +10,7 @@ import time
 from collections.abc import Callable
 
 from bot import config
-from bot.storage import Store
+from bot.storage import Store, Turn
 
 MAX_TURNS = 10
 _LOCK_CAP = 200
@@ -80,14 +80,18 @@ async def purge_if_due() -> None:
     await current_store().purge_older_than(cutoff)
 
 
-async def load_context(channel_id: int) -> list[tuple[str, str]]:
+async def load_context(channel_id: int) -> list[Turn]:
     cutoff = now() - config.AI_HISTORY_DAYS * _DAY_SECONDS
-    rows = await current_store().recent_turns(channel_id, MAX_TURNS, cutoff)
-    pairs: list[tuple[str, str]] = []
+    return await current_store().recent_turns(channel_id, MAX_TURNS, cutoff)
+
+
+def turns_to_messages(rows: list[Turn]) -> list[dict[str, str]]:
+    """Assistant lines stay bare so a speaker prefix is not copied into replies."""
+    messages: list[dict[str, str]] = []
     for row in rows:
-        pairs.append(("user", row.user_text))
-        pairs.append(("assistant", row.assistant_text))
-    return pairs
+        messages.append({"role": "user", "content": row.user_text})
+        messages.append({"role": "assistant", "content": row.assistant_text})
+    return messages
 
 
 async def record_turn(
